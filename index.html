@@ -21,7 +21,7 @@
         .search-box p { font-size: 14px; color: #555; margin-bottom: 15px; }
         .input-group { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; max-width: 850px; margin: 0 auto; }
         select, input[type="text"] { width: 100%; padding: 11px 14px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; }
-        button { width: 100%; padding: 12px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: cursor; font-weight: bold; }
+        button { width: 100%; padding: 12px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         button:hover { background: #22543d; }
         
         .section-title { text-align: left; font-size: 16px; margin: 20px 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid #2b6cb0; color: #1a365d; }
@@ -87,11 +87,22 @@
 </div>
 
 <script>
-    // Data Source CSV URLs
+    // General Data Sources
     const ASSIGNMENT_TOPICS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Bh8JCsNB-MfJahnJKQWfOopmJQatdBt4BAJng4OcJ6o/gviz/tq?tqx=out:csv';
     const ASSIGNMENT_SUBMISSION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
     const PRESENTATION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
-    const ATTENDANCE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXXKYaFwvYU1beKKkR_TWDClj9m-D-c7MWzJ9016TPzpCnjZz9TUonO9y8_yUGxB7ddVrTKtUdLuvY/pub?output=csv';
+
+    // Attendance Spreadsheets (Base ID: 1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM)
+    const ATTENDANCE_SHEET_BASE_URL = 'https://docs.google.com/spreadsheets/d/1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM/gviz/tq?tqx=out:csv&sheet=';
+
+    // Map each subject option to its exact tab name in Google Sheets
+    const SUBJECT_TAB_MAP = {
+        "TE 301 (Day)": "TE 301 (Day)",
+        "CSE 210 (Evening)": "CSE 210 (Evening)",
+        "TE 301 (Evening)": "TE 301 (Evening)",
+        "TPHY 108 (Evening)": "TPHY 108 (Evening)",
+        "TE 308 (Evening)": "TE 308 (Evening)"
+    };
 
     function parseCSVLine(text) {
         const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
@@ -117,7 +128,6 @@
             const headers = parseCSVLine(lines[0]);
             const rows = lines.slice(1).map(line => parseCSVLine(line));
 
-            // Extract base code and shift (e.g., "TE 301 (Day)" -> base: "te301", shift: "day")
             const cleanSelected = selectedSubject.toLowerCase();
             const baseCodeMatch = cleanSelected.match(/^([a-z0-9\s]+)/);
             const cleanBaseCode = baseCodeMatch ? baseCodeMatch[1].replace(/\s+/g, '') : '';
@@ -128,20 +138,19 @@
                 const rowStr = row.join(' ').toLowerCase();
                 const cleanRowStr = rowStr.replace(/\s+/g, '');
                 
-                // Subject match check
-                const hasSubject = cleanRowStr.includes(cleanBaseCode);
+                // When fetching from a specific subject tab (like attendance), checking the ID is sufficient
+                const hasId = studentId ? row.some(cell => cell.toLowerCase() === studentId) : true;
                 
-                // Shift match check if shift is specified in sheet
-                let shiftMatch = true;
-                if (isDay && rowStr.includes('evening')) shiftMatch = false;
-                if (isEvening && rowStr.includes('day')) shiftMatch = false;
-
                 if (isTopicSheet) {
+                    const hasSubject = cleanRowStr.includes(cleanBaseCode);
+                    let shiftMatch = true;
+                    if (isDay && rowStr.includes('evening')) shiftMatch = false;
+                    if (isEvening && rowStr.includes('day')) shiftMatch = false;
                     return hasSubject && shiftMatch;
                 }
 
-                const hasId = row.some(cell => cell.toLowerCase() === studentId);
-                return hasSubject && hasId && shiftMatch;
+                // Match ID across rows
+                return hasId;
             });
 
             return { headers, matches };
@@ -162,11 +171,15 @@
 
         container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching academic records...</p>';
 
+        // Determine specific attendance URL based on selected tab name
+        const tabName = SUBJECT_TAB_MAP[inputSubject] || encodeURIComponent(inputSubject);
+        const attendanceUrl = `${ATTENDANCE_SHEET_BASE_URL}${encodeURIComponent(tabName)}`;
+
         const [topicData, submissionData, presentationData, attendanceData] = await Promise.all([
             fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, null, true),
             fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputId, false),
             fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputId, false),
-            fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputId, false)
+            fetchAndFilterCSV(attendanceUrl, inputSubject, inputId, false)
         ]);
 
         let outputHTML = '';
