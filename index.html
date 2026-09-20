@@ -26,7 +26,7 @@
         button { width: 100%; padding: 12px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         button:hover { background: #22543d; }
         
-        /* Table Layout Styling */
+        /* Section Titles & Tables */
         .section-title { text-align: left; font-size: 16px; margin: 20px 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid #2b6cb0; color: #1a365d; }
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 15px; }
         .result-table { width: 100%; border-collapse: collapse; min-width: 500px; }
@@ -50,29 +50,29 @@
 <div class="container">
     <h1>Course Resource & Submission Portal - Saiful Islam</h1>
     
-    <!-- 3 Essential Link Cards -->
+    <!-- Top Direct Links -->
     <div class="grid">
         <div class="card">
             <h3>Course Materials</h3>
-            <p>Lecture slides, notes, and course files.</p>
+            <p>Lecture slides, notes, and files.</p>
             <a href="https://drive.google.com/drive/folders/15q7Qa0GGyzVc5tchqnil8YPQRwvnEmRQ?usp=drive_link" target="_blank">Open Drive Folder</a>
         </div>
         <div class="card">
             <h3>Submit Assignment</h3>
-            <p>Upload your finished assignment files.</p>
+            <p>Upload your assignment files.</p>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSetb1qkOJCOo-je8nGlXzzWT0elucVY7oG4AZqVvjTeTogl4w/viewform?usp=header" target="_blank">Submission Form</a>
         </div>
         <div class="card">
             <h3>Presentation Topics</h3>
-            <p>Select your preferred presentation topic.</p>
+            <p>Select your topic choice.</p>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
         </div>
     </div>
 
-    <!-- Master Unified Student Status Search -->
+    <!-- Master Academic Status Search Box -->
     <div class="search-box">
         <h2>Student Academic Status Search</h2>
-        <p>Enter your Subject Code and Student ID to check Assignment Submission, Presentation Topic, and Attendance %.</p>
+        <p>Enter your Subject Code and Student ID to get Assignment Topics, Submission Verification, Presentation Topic, and Attendance %.</p>
         <div class="input-group">
             <input type="text" id="subjectCodeInput" placeholder="Subject Code (e.g., TEX-101)" onkeypress="handleKeyPress(event)">
             <input type="text" id="studentIdInput" placeholder="Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event)">
@@ -83,11 +83,10 @@
 </div>
 
 <script>
-    // Google Spreadsheet CSV Export URLs
-    const ASSIGNMENT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
+    // 4 Data Source URLs
+    const ASSIGNMENT_TOPICS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Bh8JCsNB-MfJahnJKQWfOopmJQatdBt4BAJng4OcJ6o/gviz/tq?tqx=out:csv';
+    const ASSIGNMENT_SUBMISSION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
     const PRESENTATION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
-    
-    // Attendance Spreadsheet CSV URL (Export link generated from ID: 1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM)
     const ATTENDANCE_CSV_URL = 'https://docs.google.com/spreadsheets/d/1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM/gviz/tq?tqx=out:csv';
 
     function parseCSVLine(text) {
@@ -102,7 +101,7 @@
         return array;
     }
 
-    async function fetchAndFilterCSV(csvUrl, subject, studentId) {
+    async function fetchAndFilterCSV(csvUrl, subject, studentId = null) {
         try {
             const response = await fetch(csvUrl);
             if (!response.ok) return null;
@@ -114,9 +113,10 @@
             const headers = parseCSVLine(lines[0]);
             const rows = lines.slice(1).map(line => parseCSVLine(line));
 
-            // Matches rows that contain BOTH the Subject Code and Student ID
             const matches = rows.filter(row => {
                 const hasSubject = row.some(cell => cell.toLowerCase().includes(subject));
+                if (!studentId) return hasSubject; // Topic guideline search requires only subject code
+                
                 const hasId = row.some(cell => cell.toLowerCase() === studentId);
                 return hasSubject && hasId;
             });
@@ -137,37 +137,44 @@
             return;
         }
 
-        container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching academic records...</p>';
+        container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching all academic records...</p>';
 
-        // Fetch data from all 3 sources simultaneously
-        const [assignmentData, presentationData, attendanceData] = await Promise.all([
-            fetchAndFilterCSV(ASSIGNMENT_CSV_URL, inputSubject, inputId),
+        // Query all 4 links simultaneously
+        const [topicData, submissionData, presentationData, attendanceData] = await Promise.all([
+            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject),
+            fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputId),
             fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputId),
             fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputId)
         ]);
 
         let outputHTML = '';
 
-        // 1. Assignment Submission Record
-        if (assignmentData && assignmentData.matches.length > 0) {
-            outputHTML += '<div class="section-title">Assignment Submission & Topic Status</div>';
-            outputHTML += buildTableHTML(assignmentData.headers, assignmentData.matches);
+        // 1. Assignment Topic Guidelines
+        if (topicData && topicData.matches.length > 0) {
+            outputHTML += '<div class="section-title">Assignment Topic & Guidelines (Course Match)</div>';
+            outputHTML += buildTableHTML(topicData.headers, topicData.matches);
         }
 
-        // 2. Presentation Topic Record
+        // 2. Assignment Submission Status
+        if (submissionData && submissionData.matches.length > 0) {
+            outputHTML += '<div class="section-title">Assignment Submission Verification</div>';
+            outputHTML += buildTableHTML(submissionData.headers, submissionData.matches);
+        }
+
+        // 3. Presentation Topic Choice
         if (presentationData && presentationData.matches.length > 0) {
-            outputHTML += '<div class="section-title">Presentation Topic Status</div>';
+            outputHTML += '<div class="section-title">Presentation Topic Choice</div>';
             outputHTML += buildTableHTML(presentationData.headers, presentationData.matches);
         }
 
-        // 3. Attendance Percentage Record
+        // 4. Attendance Percentage
         if (attendanceData && attendanceData.matches.length > 0) {
-            outputHTML += '<div class="section-title">Attendance Record</div>';
+            outputHTML += '<div class="section-title">Attendance Record (%)</div>';
             outputHTML += buildTableHTML(attendanceData.headers, attendanceData.matches);
         }
 
         if (outputHTML === '') {
-            container.innerHTML = `<p class="status-none">No records found matching Subject Code "${inputSubject.toUpperCase()}" and Student ID "${inputId.toUpperCase()}".</p>`;
+            container.innerHTML = `<p class="status-none">No matching records found for Subject Code "${inputSubject.toUpperCase()}" and Student ID "${inputId.toUpperCase()}".</p>`;
         } else {
             container.innerHTML = outputHTML;
         }
