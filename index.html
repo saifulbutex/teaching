@@ -21,7 +21,7 @@
         .search-box p { font-size: 14px; color: #555; margin-bottom: 15px; }
         .input-group { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; max-width: 850px; margin: 0 auto; }
         select, input[type="text"] { width: 100%; padding: 11px 14px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; }
-        button { width: 100%; padding: 12px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button { width: 100%; padding: 12px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: cursor; font-weight: bold; }
         button:hover { background: #22543d; }
         
         .section-title { text-align: left; font-size: 16px; margin: 20px 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid #2b6cb0; color: #1a365d; }
@@ -37,9 +37,8 @@
         @media (min-width: 650px) {
             body { padding: 20px; }
             .input-group { flex-direction: row; }
-            select.subject-select { width: 28%; }
-            select.section-select { width: 20%; }
-            input[type="text"] { width: 32%; }
+            select.subject-select { width: 42%; }
+            input[type="text"] { width: 38%; }
             button { width: 20%; }
         }
     </style>
@@ -69,20 +68,15 @@
 
     <div class="search-box">
         <h2>Student Academic Status Search</h2>
-        <p>Select your Subject Code, Section, and enter your Student ID to check your records.</p>
+        <p>Select your Subject Code & Shift, and enter your Student ID to check your records.</p>
         <div class="input-group">
             <select id="subjectCodeSelect" class="subject-select">
-                <option value="">-- Select Subject --</option>
-                <option value="CSE 210">CSE 210</option>
-                <option value="TE 301">TE 301</option>
-                <option value="TPHY 108">TPHY 108</option>
-                <option value="TE 308">TE 308</option>
-            </select>
-
-            <select id="sectionSelect" class="section-select">
-                <option value="">-- Section --</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
+                <option value="">-- Select Subject & Shift --</option>
+                <option value="TE 301 (Day)">TE 301 (Day)</option>
+                <option value="CSE 210 (Evening)">CSE 210 (Evening)</option>
+                <option value="TE 301 (Evening)">TE 301 (Evening)</option>
+                <option value="TPHY 108 (Evening)">TPHY 108 (Evening)</option>
+                <option value="TE 308 (Evening)">TE 308 (Evening)</option>
             </select>
 
             <input type="text" id="studentIdInput" placeholder="Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event)">
@@ -111,7 +105,7 @@
         return array;
     }
 
-    async function fetchAndFilterCSV(csvUrl, subject, section, studentId = null, isTopicSheet = false) {
+    async function fetchAndFilterCSV(csvUrl, selectedSubject, studentId = null, isTopicSheet = false) {
         try {
             const response = await fetch(csvUrl);
             if (!response.ok) return null;
@@ -123,33 +117,31 @@
             const headers = parseCSVLine(lines[0]);
             const rows = lines.slice(1).map(line => parseCSVLine(line));
 
-            const cleanSubject = subject.replace(/\s+/g, '').toLowerCase();
+            // Extract base code and shift (e.g., "TE 301 (Day)" -> base: "te301", shift: "day")
+            const cleanSelected = selectedSubject.toLowerCase();
+            const baseCodeMatch = cleanSelected.match(/^([a-z0-9\s]+)/);
+            const cleanBaseCode = baseCodeMatch ? baseCodeMatch[1].replace(/\s+/g, '') : '';
+            const isDay = cleanSelected.includes('day');
+            const isEvening = cleanSelected.includes('evening');
 
             const matches = rows.filter(row => {
                 const rowStr = row.join(' ').toLowerCase();
                 const cleanRowStr = rowStr.replace(/\s+/g, '');
                 
-                const hasSubject = cleanRowStr.includes(cleanSubject);
+                // Subject match check
+                const hasSubject = cleanRowStr.includes(cleanBaseCode);
+                
+                // Shift match check if shift is specified in sheet
+                let shiftMatch = true;
+                if (isDay && rowStr.includes('evening')) shiftMatch = false;
+                if (isEvening && rowStr.includes('day')) shiftMatch = false;
 
-                // If retrieving overall topics/guidelines, filter only by subject (show for both sections)
                 if (isTopicSheet) {
-                    const rowContainsSection = row.some(cell => {
-                        const c = cell.toLowerCase().trim();
-                        return c === section || c === `section ${section}` || c === `sec-${section}` || c === `sec ${section}`;
-                    });
-                    const rowHasAnySection = row.some(cell => cell.toLowerCase().includes('section') || cell.toLowerCase().includes('sec'));
-                    
-                    return hasSubject && (!rowHasAnySection || rowContainsSection);
+                    return hasSubject && shiftMatch;
                 }
 
-                // Strictly verify Subject, Section, and Student ID for personal student records
                 const hasId = row.some(cell => cell.toLowerCase() === studentId);
-                const hasSection = row.some(cell => {
-                    const c = cell.toLowerCase().trim();
-                    return c === section || c === `section ${section}` || c === `sec-${section}` || c === `sec ${section}`;
-                });
-
-                return hasSubject && hasId && hasSection;
+                return hasSubject && hasId && shiftMatch;
             });
 
             return { headers, matches };
@@ -160,22 +152,21 @@
 
     async function searchAllStudentStatus() {
         const inputSubject = document.getElementById('subjectCodeSelect').value.trim();
-        const inputSection = document.getElementById('sectionSelect').value.trim().toLowerCase();
         const inputId = document.getElementById('studentIdInput').value.trim().toLowerCase();
         const container = document.getElementById('unifiedResultContainer');
 
-        if (!inputSubject || !inputSection || !inputId) {
-            container.innerHTML = '<p class="status-none">Please select Subject Code, Section, and enter your Student ID.</p>';
+        if (!inputSubject || !inputId) {
+            container.innerHTML = '<p class="status-none">Please select Subject Code and enter your Student ID.</p>';
             return;
         }
 
         container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching academic records...</p>';
 
         const [topicData, submissionData, presentationData, attendanceData] = await Promise.all([
-            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, inputSection, null, true),
-            fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputSection, inputId, false),
-            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputSection, inputId, false),
-            fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputSection, inputId, false)
+            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, null, true),
+            fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputId, false),
+            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputId, false),
+            fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputId, false)
         ]);
 
         let outputHTML = '';
@@ -201,7 +192,7 @@
         }
 
         if (outputHTML === '') {
-            container.innerHTML = `<p class="status-none">No records found matching Subject Code "${inputSubject}", Section "${inputSection.toUpperCase()}", and Student ID "${inputId.toUpperCase()}".</p>`;
+            container.innerHTML = `<p class="status-none">No records found matching Subject Code "${inputSubject}" and Student ID "${inputId.toUpperCase()}".</p>`;
         } else {
             container.innerHTML = outputHTML;
         }
