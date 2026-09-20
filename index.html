@@ -111,7 +111,7 @@
         return array;
     }
 
-    async function fetchAndFilterCSV(csvUrl, subject, section, studentId = null) {
+    async function fetchAndFilterCSV(csvUrl, subject, section, studentId = null, isTopicSheet = false) {
         try {
             const response = await fetch(csvUrl);
             if (!response.ok) return null;
@@ -123,7 +123,6 @@
             const headers = parseCSVLine(lines[0]);
             const rows = lines.slice(1).map(line => parseCSVLine(line));
 
-            // Clean subject comparison (removes spaces for matching, e.g., "CSE 210" matches "CSE210")
             const cleanSubject = subject.replace(/\s+/g, '').toLowerCase();
 
             const matches = rows.filter(row => {
@@ -131,14 +130,24 @@
                 const cleanRowStr = rowStr.replace(/\s+/g, '');
                 
                 const hasSubject = cleanRowStr.includes(cleanSubject);
-                
-                if (!studentId) {
-                    // For topic guidelines, check subject and section if specified in row
-                    return hasSubject;
+
+                // If retrieving overall topics/guidelines, filter only by subject (show for both sections)
+                if (isTopicSheet) {
+                    const rowContainsSection = row.some(cell => {
+                        const c = cell.toLowerCase().trim();
+                        return c === section || c === `section ${section}` || c === `sec-${section}` || c === `sec ${section}`;
+                    });
+                    const rowHasAnySection = row.some(cell => cell.toLowerCase().includes('section') || cell.toLowerCase().includes('sec'));
+                    
+                    return hasSubject && (!rowHasAnySection || rowContainsSection);
                 }
-                
+
+                // Strictly verify Subject, Section, and Student ID for personal student records
                 const hasId = row.some(cell => cell.toLowerCase() === studentId);
-                const hasSection = section ? row.some(cell => cell.toLowerCase() === section || cell.toLowerCase() === `section ${section}` || cell.toLowerCase() === `sec-${section}`) : true;
+                const hasSection = row.some(cell => {
+                    const c = cell.toLowerCase().trim();
+                    return c === section || c === `section ${section}` || c === `sec-${section}` || c === `sec ${section}`;
+                });
 
                 return hasSubject && hasId && hasSection;
             });
@@ -163,10 +172,10 @@
         container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching academic records...</p>';
 
         const [topicData, submissionData, presentationData, attendanceData] = await Promise.all([
-            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, inputSection),
-            fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputSection, inputId),
-            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputSection, inputId),
-            fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputSection, inputId)
+            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, inputSection, null, true),
+            fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputSection, inputId, false),
+            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputSection, inputId, false),
+            fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputSection, inputId, false)
         ]);
 
         let outputHTML = '';
