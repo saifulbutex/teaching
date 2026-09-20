@@ -10,7 +10,6 @@
         .container { max-width: 950px; margin: 0 auto; }
         h1, h2, h3 { color: #1a365d; text-align: center; margin-top: 10px; }
         
-        /* 3 Essential Link Cards */
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
         .card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
         .card h3 { font-size: 15px; margin: 0 0 8px 0; }
@@ -18,15 +17,13 @@
         .card a { display: inline-block; padding: 8px 10px; background: #2b6cb0; color: #fff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: bold; }
         .card a:hover { background: #2c5282; }
         
-        /* Single Master Search Box */
         .search-box { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; margin-bottom: 25px; }
         .search-box p { font-size: 14px; color: #555; margin-bottom: 15px; }
-        .input-group { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; max-width: 750px; margin: 0 auto; }
-        input[type="text"] { width: 100%; padding: 11px 14px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        .input-group { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; max-width: 850px; margin: 0 auto; }
+        select, input[type="text"] { width: 100%; padding: 11px 14px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; }
         button { width: 100%; padding: 12px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         button:hover { background: #22543d; }
         
-        /* Section Titles & Tables */
         .section-title { text-align: left; font-size: 16px; margin: 20px 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid #2b6cb0; color: #1a365d; }
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 15px; }
         .result-table { width: 100%; border-collapse: collapse; min-width: 500px; }
@@ -40,8 +37,10 @@
         @media (min-width: 650px) {
             body { padding: 20px; }
             .input-group { flex-direction: row; }
-            input[type="text"] { width: 38%; }
-            button { width: 24%; }
+            select.subject-select { width: 28%; }
+            select.section-select { width: 20%; }
+            input[type="text"] { width: 32%; }
+            button { width: 20%; }
         }
     </style>
 </head>
@@ -50,7 +49,6 @@
 <div class="container">
     <h1>Course Resource & Submission Portal - Saiful Islam</h1>
     
-    <!-- Top Direct Links -->
     <div class="grid">
         <div class="card">
             <h3>Course Materials</h3>
@@ -69,12 +67,24 @@
         </div>
     </div>
 
-    <!-- Master Academic Status Search Box -->
     <div class="search-box">
         <h2>Student Academic Status Search</h2>
-        <p>Enter your Subject Code and Student ID to get Assignment Topics, Submission Verification, Presentation Topic, and Attendance %.</p>
+        <p>Select your Subject Code, Section, and enter your Student ID to check your records.</p>
         <div class="input-group">
-            <input type="text" id="subjectCodeInput" placeholder="Subject Code (e.g., TEX-101)" onkeypress="handleKeyPress(event)">
+            <select id="subjectCodeSelect" class="subject-select">
+                <option value="">-- Select Subject --</option>
+                <option value="CSE 210">CSE 210</option>
+                <option value="TE 301">TE 301</option>
+                <option value="TPHY 108">TPHY 108</option>
+                <option value="TE 308">TE 308</option>
+            </select>
+
+            <select id="sectionSelect" class="section-select">
+                <option value="">-- Section --</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+            </select>
+
             <input type="text" id="studentIdInput" placeholder="Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event)">
             <button onclick="searchAllStudentStatus()">Search Status</button>
         </div>
@@ -83,11 +93,11 @@
 </div>
 
 <script>
-    // 4 Data Source URLs
+    // Data Source CSV URLs
     const ASSIGNMENT_TOPICS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1Bh8JCsNB-MfJahnJKQWfOopmJQatdBt4BAJng4OcJ6o/gviz/tq?tqx=out:csv';
     const ASSIGNMENT_SUBMISSION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
     const PRESENTATION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
-    const ATTENDANCE_CSV_URL = 'https://docs.google.com/spreadsheets/d/1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM/gviz/tq?tqx=out:csv';
+    const ATTENDANCE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXXKYaFwvYU1beKKkR_TWDClj9m-D-c7MWzJ9016TPzpCnjZz9TUonO9y8_yUGxB7ddVrTKtUdLuvY/pub?output=csv';
 
     function parseCSVLine(text) {
         const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
@@ -101,7 +111,7 @@
         return array;
     }
 
-    async function fetchAndFilterCSV(csvUrl, subject, studentId = null) {
+    async function fetchAndFilterCSV(csvUrl, subject, section, studentId = null) {
         try {
             const response = await fetch(csvUrl);
             if (!response.ok) return null;
@@ -113,12 +123,24 @@
             const headers = parseCSVLine(lines[0]);
             const rows = lines.slice(1).map(line => parseCSVLine(line));
 
+            // Clean subject comparison (removes spaces for matching, e.g., "CSE 210" matches "CSE210")
+            const cleanSubject = subject.replace(/\s+/g, '').toLowerCase();
+
             const matches = rows.filter(row => {
-                const hasSubject = row.some(cell => cell.toLowerCase().includes(subject));
-                if (!studentId) return hasSubject; // Topic guideline search requires only subject code
+                const rowStr = row.join(' ').toLowerCase();
+                const cleanRowStr = rowStr.replace(/\s+/g, '');
+                
+                const hasSubject = cleanRowStr.includes(cleanSubject);
+                
+                if (!studentId) {
+                    // For topic guidelines, check subject and section if specified in row
+                    return hasSubject;
+                }
                 
                 const hasId = row.some(cell => cell.toLowerCase() === studentId);
-                return hasSubject && hasId;
+                const hasSection = section ? row.some(cell => cell.toLowerCase() === section || cell.toLowerCase() === `section ${section}` || cell.toLowerCase() === `sec-${section}`) : true;
+
+                return hasSubject && hasId && hasSection;
             });
 
             return { headers, matches };
@@ -128,53 +150,49 @@
     }
 
     async function searchAllStudentStatus() {
-        const inputSubject = document.getElementById('subjectCodeInput').value.trim().toLowerCase();
+        const inputSubject = document.getElementById('subjectCodeSelect').value.trim();
+        const inputSection = document.getElementById('sectionSelect').value.trim().toLowerCase();
         const inputId = document.getElementById('studentIdInput').value.trim().toLowerCase();
         const container = document.getElementById('unifiedResultContainer');
 
-        if (!inputSubject || !inputId) {
-            container.innerHTML = '<p class="status-none">Please enter both Subject Code and Student ID.</p>';
+        if (!inputSubject || !inputSection || !inputId) {
+            container.innerHTML = '<p class="status-none">Please select Subject Code, Section, and enter your Student ID.</p>';
             return;
         }
 
-        container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching all academic records...</p>';
+        container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching academic records...</p>';
 
-        // Query all 4 links simultaneously
         const [topicData, submissionData, presentationData, attendanceData] = await Promise.all([
-            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject),
-            fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputId),
-            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputId),
-            fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputId)
+            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, inputSection),
+            fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputSection, inputId),
+            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputSection, inputId),
+            fetchAndFilterCSV(ATTENDANCE_CSV_URL, inputSubject, inputSection, inputId)
         ]);
 
         let outputHTML = '';
 
-        // 1. Assignment Topic Guidelines
         if (topicData && topicData.matches.length > 0) {
-            outputHTML += '<div class="section-title">Assignment Topic & Guidelines (Course Match)</div>';
+            outputHTML += '<div class="section-title">Assignment Topic & Guidelines</div>';
             outputHTML += buildTableHTML(topicData.headers, topicData.matches);
         }
 
-        // 2. Assignment Submission Status
         if (submissionData && submissionData.matches.length > 0) {
             outputHTML += '<div class="section-title">Assignment Submission Verification</div>';
             outputHTML += buildTableHTML(submissionData.headers, submissionData.matches);
         }
 
-        // 3. Presentation Topic Choice
         if (presentationData && presentationData.matches.length > 0) {
             outputHTML += '<div class="section-title">Presentation Topic Choice</div>';
             outputHTML += buildTableHTML(presentationData.headers, presentationData.matches);
         }
 
-        // 4. Attendance Percentage
         if (attendanceData && attendanceData.matches.length > 0) {
-            outputHTML += '<div class="section-title">Attendance Record (%)</div>';
+            outputHTML += '<div class="section-title">Attendance Percentage Record</div>';
             outputHTML += buildTableHTML(attendanceData.headers, attendanceData.matches);
         }
 
         if (outputHTML === '') {
-            container.innerHTML = `<p class="status-none">No matching records found for Subject Code "${inputSubject.toUpperCase()}" and Student ID "${inputId.toUpperCase()}".</p>`;
+            container.innerHTML = `<p class="status-none">No records found matching Subject Code "${inputSubject}", Section "${inputSection.toUpperCase()}", and Student ID "${inputId.toUpperCase()}".</p>`;
         } else {
             container.innerHTML = outputHTML;
         }
