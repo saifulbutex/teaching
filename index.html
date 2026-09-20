@@ -92,10 +92,9 @@
     const ASSIGNMENT_SUBMISSION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
     const PRESENTATION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
 
-    // Attendance Spreadsheets (Base ID: 1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM)
+    // Attendance Spreadsheets Base URL
     const ATTENDANCE_SHEET_BASE_URL = 'https://docs.google.com/spreadsheets/d/1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM/gviz/tq?tqx=out:csv&sheet=';
 
-    // Map each subject option to its exact tab name in Google Sheets
     const SUBJECT_TAB_MAP = {
         "TE 301 (Day)": "TE 301 (Day)",
         "CSE 210 (Evening)": "CSE 210 (Evening)",
@@ -138,7 +137,6 @@
                 const rowStr = row.join(' ').toLowerCase();
                 const cleanRowStr = rowStr.replace(/\s+/g, '');
                 
-                // When fetching from a specific subject tab (like attendance), checking the ID is sufficient
                 const hasId = studentId ? row.some(cell => cell.toLowerCase() === studentId) : true;
                 
                 if (isTopicSheet) {
@@ -149,7 +147,6 @@
                     return hasSubject && shiftMatch;
                 }
 
-                // Match ID across rows
                 return hasId;
             });
 
@@ -171,7 +168,6 @@
 
         container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching academic records...</p>';
 
-        // Determine specific attendance URL based on selected tab name
         const tabName = SUBJECT_TAB_MAP[inputSubject] || encodeURIComponent(inputSubject);
         const attendanceUrl = `${ATTENDANCE_SHEET_BASE_URL}${encodeURIComponent(tabName)}`;
 
@@ -201,7 +197,9 @@
 
         if (attendanceData && attendanceData.matches.length > 0) {
             outputHTML += '<div class="section-title">Attendance Percentage Record</div>';
-            outputHTML += buildTableHTML(attendanceData.headers, attendanceData.matches);
+            // Specify 0-indexed column numbers for 1, 2, 21, 22, 23
+            const attendanceColumns = [0, 1, 20, 21, 22];
+            outputHTML += buildTableHTML(attendanceData.headers, attendanceData.matches, attendanceColumns);
         }
 
         if (outputHTML === '') {
@@ -211,15 +209,31 @@
         }
     }
 
-    function buildTableHTML(headers, rows) {
+    function buildTableHTML(headers, rows, targetColumns = null) {
+        // If targetColumns is specified, filter by those indices; otherwise show all
+        const indices = targetColumns ? targetColumns : headers.map((_, i) => i);
+
         let html = '<div class="table-wrapper"><table class="result-table"><tr>';
-        headers.forEach(h => html += `<th>${h}</th>`);
+        
+        // Render selected header columns
+        indices.forEach(i => {
+            if (headers[i] !== undefined) {
+                html += `<th>${headers[i]}</th>`;
+            }
+        });
         html += '</tr>';
+
+        // Render selected cell data per row
         rows.forEach(row => {
             html += '<tr>';
-            row.forEach(cell => html += `<td>${cell}</td>`);
+            indices.forEach(i => {
+                if (headers[i] !== undefined) {
+                    html += `<td>${row[i] !== undefined ? row[i] : ''}</td>`;
+                }
+            });
             html += '</tr>';
         });
+
         html += '</table></div>';
         return html;
     }
