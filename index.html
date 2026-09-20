@@ -7,38 +7,37 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background-color: #f4f6f9; color: #333; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1, h2 { color: #1a365d; text-align: center; margin-top: 10px; }
+        .container { max-width: 950px; margin: 0 auto; }
+        h1, h2, h3 { color: #1a365d; text-align: center; margin-top: 10px; }
         
-        /* Responsive 5-card grid layout */
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 25px; }
+        /* 4 essential top cards */
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 25px; }
         .card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
-        .card h3 { font-size: 15px; margin: 0 0 8px 0; color: #1a365d; }
+        .card h3 { font-size: 15px; margin: 0 0 8px 0; }
         .card p { font-size: 12px; color: #666; margin: 0 0 12px 0; flex-grow: 1; }
         .card a { display: inline-block; padding: 8px 10px; background: #2b6cb0; color: #fff; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: bold; }
         .card a:hover { background: #2c5282; }
         
-        /* Dual-Input Search Containers */
-        .search-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; margin-bottom: 20px; }
+        /* Unified Search Box */
+        .search-box { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; margin-bottom: 25px; }
         .search-box p { font-size: 14px; color: #555; margin-bottom: 15px; }
         .input-group { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; max-width: 750px; margin: 0 auto; }
-        input[type="text"] { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 100%; padding: 11px 18px; font-size: 15px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        input[type="text"] { width: 100%; padding: 11px 14px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 12px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         button:hover { background: #22543d; }
         
-        /* Mobile-Safe Table Output */
-        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 15px; }
+        /* Output Layout */
+        .section-title { text-align: left; font-size: 16px; margin: 20px 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid #2b6cb0; color: #1a365d; }
+        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 15px; }
         .result-table { width: 100%; border-collapse: collapse; min-width: 500px; }
         .result-table th, .result-table td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
         .result-table th { background-color: #edf2f7; }
-        .status-found { color: #276749; font-weight: bold; margin-bottom: 10px; }
-        .status-none { color: #c53030; font-weight: bold; }
+        .status-none { color: #c53030; font-weight: bold; margin-top: 15px; }
 
-        /* Media Queries for Desktop vs Mobile */
-        @media (max-width: 900px) {
-            .grid { grid-template-columns: repeat(3, 1fr); }
+        @media (max-width: 800px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
         }
-        @media (max-width: 600px) {
+        @media (max-width: 500px) {
             .grid { grid-template-columns: 1fr; }
         }
         @media (min-width: 650px) {
@@ -54,7 +53,7 @@
 <div class="container">
     <h1>Course Resource & Submission Portal - Saiful Islam</h1>
     
-    <!-- 5 Cards (Adaptive Layout) -->
+    <!-- 4 Essential Navigation Cards -->
     <div class="grid">
         <div class="card">
             <h3>Course Materials</h3>
@@ -62,57 +61,39 @@
             <a href="https://drive.google.com/drive/folders/15q7Qa0GGyzVc5tchqnil8YPQRwvnEmRQ?usp=drive_link" target="_blank">Open Drive Folder</a>
         </div>
         <div class="card">
-            <h3>Assignments</h3>
-            <p>See assignment topics & guidelines.</p>
+            <h3>Assignment Topics</h3>
+            <p>View topic guidelines.</p>
             <a href="https://docs.google.com/spreadsheets/d/1Bh8JCsNB-MfJahnJKQWfOopmJQatdBt4BAJng4OcJ6o/edit?usp=drive_link" target="_blank">View Assignments</a>
         </div>
         <div class="card">
             <h3>Submit Assignment</h3>
-            <p>Upload files.</p>
+            <p>Upload your assignment files.</p>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSetb1qkOJCOo-je8nGlXzzWT0elucVY7oG4AZqVvjTeTogl4w/viewform?usp=header" target="_blank">Submission Form</a>
         </div>
         <div class="card">
-            <h3>Presentations</h3>
-            <p>Select presentation topic</p>
+            <h3>Presentation Topics</h3>
+            <p>Select your topic choice.</p>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
         </div>
-        <div class="card">
-            <h3>Attendance</h3>
-            <p>See attendance percentage</p>
-            <a href="https://docs.google.com/spreadsheets/d/1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM/edit?usp=sharing" target="_blank">View Attendance</a>
-        </div>
     </div>
 
-    <!-- 1. Dual-Criteria Assignment Verification -->
+    <!-- Single Master Search Box -->
     <div class="search-box">
-        <h2>Verify Assignment Submission</h2>
-        <p>Enter your Subject Code and Student ID to confirm your assignment submission.</p>
+        <h2>Student Academic Status Search</h2>
+        <p>Enter your Subject Code and Student ID to check assignment submission and presentation topic details in one search.</p>
         <div class="input-group">
-            <input type="text" id="subjectCodeInput" placeholder="Subject Code (e.g., TEX-101)" onkeypress="handleKeyPress(event, 'assignment')">
-            <input type="text" id="studentIdInput" placeholder="Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event, 'assignment')">
-            <button onclick="checkSubmission()">Check Assignment</button>
+            <input type="text" id="subjectCodeInput" placeholder="Subject Code (e.g., TEX-101)" onkeypress="handleKeyPress(event)">
+            <input type="text" id="studentIdInput" placeholder="Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event)">
+            <button onclick="searchAllStudentStatus()">Search Status</button>
         </div>
-        <div id="resultContainer" style="margin-top: 15px;"></div>
-    </div>
-
-    <!-- 2. Dual-Criteria Presentation Verification -->
-    <div class="search-box">
-        <h2>Verify Presentation Topic</h2>
-        <p>Enter your Subject Code and Student ID to confirm your selected presentation topic.</p>
-        <div class="input-group">
-            <input type="text" id="presentationSubjectInput" placeholder="Subject Code (e.g., TEX-101)" onkeypress="handleKeyPress(event, 'presentation')">
-            <input type="text" id="presentationIdInput" placeholder="Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event, 'presentation')">
-            <button onclick="checkPresentationTopic()">Check Presentation</button>
-        </div>
-        <div id="presentationResultContainer" style="margin-top: 15px;"></div>
+        <div id="unifiedResultContainer"></div>
     </div>
 </div>
 
 <script>
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
+    const ASSIGNMENT_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
     const PRESENTATION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
 
-    // CSV line parser handling quotes and commas
     function parseCSVLine(text) {
         const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
         const array = [];
@@ -125,72 +106,87 @@
         return array;
     }
 
-    // Dual-filter engine (Matches Subject Code AND Student ID)
-    async function verifyDualCriteriaFromCSV(csvUrl, subjectElemId, idElemId, resultElemId) {
-        const inputSubject = document.getElementById(subjectElemId).value.trim().toLowerCase();
-        const inputId = document.getElementById(idElemId).value.trim().toLowerCase();
-        const resultContainer = document.getElementById(resultElemId);
-
-        if (!inputSubject || !inputId) {
-            resultContainer.innerHTML = '<p class="status-none">Please enter both Subject Code and Student ID.</p>';
-            return;
-        }
-
+    async function fetchAndFilterCSV(csvUrl, subject, studentId) {
         try {
             const response = await fetch(csvUrl);
             const data = await response.text();
-
             const lines = data.split(/\r?\n/).filter(line => line.trim() !== '');
-            if (lines.length === 0) {
-                resultContainer.innerHTML = '<p class="status-none">No record data available.</p>';
-                return;
-            }
+            if (lines.length === 0) return { headers: [], matches: [] };
 
             const headers = parseCSVLine(lines[0]);
             const rows = lines.slice(1).map(line => parseCSVLine(line));
 
-            // Verify row contains BOTH Subject Code AND Student ID
             const matches = rows.filter(row => {
-                const hasSubject = row.some(cell => cell.toLowerCase().includes(inputSubject));
-                const hasId = row.some(cell => cell.toLowerCase() === inputId);
+                const hasSubject = row.some(cell => cell.toLowerCase().includes(subject));
+                const hasId = row.some(cell => cell.toLowerCase() === studentId);
                 return hasSubject && hasId;
             });
 
-            if (matches.length > 0) {
-                let tableHTML = '<p class="status-found">Record Found!</p><div class="table-wrapper"><table class="result-table"><tr>';
-                headers.forEach(h => tableHTML += `<th>${h}</th>`);
-                tableHTML += '</tr>';
-
-                matches.forEach(row => {
-                    tableHTML += '<tr>';
-                    row.forEach(cell => tableHTML += `<td>${cell}</td>`);
-                    tableHTML += '</tr>';
-                });
-                tableHTML += '</table></div>';
-                resultContainer.innerHTML = tableHTML;
-            } else {
-                resultContainer.innerHTML = `<p class="status-none">No record found matching Subject Code "${inputSubject.toUpperCase()}" and Student ID "${inputId.toUpperCase()}".</p>`;
-            }
+            return { headers, matches };
         } catch (error) {
-            resultContainer.innerHTML = '<p class="status-none">Error retrieving data. Please check your internet connection.</p>';
+            return null;
         }
     }
 
-    function checkSubmission() {
-        verifyDualCriteriaFromCSV(SHEET_CSV_URL, 'subjectCodeInput', 'studentIdInput', 'resultContainer');
+    async function searchAllStudentStatus() {
+        const inputSubject = document.getElementById('subjectCodeInput').value.trim().toLowerCase();
+        const inputId = document.getElementById('studentIdInput').value.trim().toLowerCase();
+        const container = document.getElementById('unifiedResultContainer');
+
+        if (!inputSubject || !inputId) {
+            container.innerHTML = '<p class="status-none">Please enter both Subject Code and Student ID.</p>';
+            return;
+        }
+
+        container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching records...</p>';
+
+        const [assignmentData, presentationData] = await Promise.all([
+            fetchAndFilterCSV(ASSIGNMENT_CSV_URL, inputSubject, inputId),
+            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputId)
+        ]);
+
+        if (!assignmentData || !presentationData) {
+            container.innerHTML = '<p class="status-none">Error fetching academic data. Please try again later.</p>';
+            return;
+        }
+
+        let outputHTML = '';
+
+        // Assignment Results
+        if (assignmentData.matches.length > 0) {
+            outputHTML += '<div class="section-title">Assignment Submission Status</div>';
+            outputHTML += buildTableHTML(assignmentData.headers, assignmentData.matches);
+        }
+
+        // Presentation Results
+        if (presentationData.matches.length > 0) {
+            outputHTML += '<div class="section-title">Presentation Topic Status</div>';
+            outputHTML += buildTableHTML(presentationData.headers, presentationData.matches);
+        }
+
+        if (outputHTML === '') {
+            container.innerHTML = `<p class="status-none">No records found for Subject Code "${inputSubject.toUpperCase()}" and Student ID "${inputId.toUpperCase()}".</p>`;
+        } else {
+            container.innerHTML = outputHTML;
+        }
     }
 
-    function checkPresentationTopic() {
-        verifyDualCriteriaFromCSV(PRESENTATION_CSV_URL, 'presentationSubjectInput', 'presentationIdInput', 'presentationResultContainer');
+    function buildTableHTML(headers, rows) {
+        let html = '<div class="table-wrapper"><table class="result-table"><tr>';
+        headers.forEach(h => html += `<th>${h}</th>`);
+        html += '</tr>';
+        rows.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => html += `<td>${cell}</td>`);
+            html += '</tr>';
+        });
+        html += '</table></div>';
+        return html;
     }
 
-    function handleKeyPress(event, type) {
+    function handleKeyPress(event) {
         if (event.key === 'Enter') {
-            if (type === 'assignment') {
-                checkSubmission();
-            } else if (type === 'presentation') {
-                checkPresentationTopic();
-            }
+            searchAllStudentStatus();
         }
     }
 </script>
