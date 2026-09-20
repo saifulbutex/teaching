@@ -12,7 +12,7 @@
         .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
         .card a { display: inline-block; margin-top: 10px; padding: 10px 15px; background: #2b6cb0; color: #fff; text-decoration: none; border-radius: 4px; }
         .card a:hover { background: #2c5282; }
-        .search-box { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .search-box { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; margin-bottom: 25px; }
         input[type="text"] { width: 60%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
         button { padding: 10px 20px; font-size: 16px; background: #276749; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background: #22543d; }
@@ -28,7 +28,7 @@
 <div class="container">
     <h1>Course Resource & Submission Portal - Saiful Islam</h1>
     
-    <!-- 4 Essential Links in 1 Central Hub -->
+    <!-- 4 Essential Links -->
     <div class="grid">
         <div class="card">
             <h3>Course Materials</h3>
@@ -52,51 +52,72 @@
         </div>
     </div>
 
-    <!-- Student ID Search Verification -->
+    <!-- 1. Assignment Verification -->
     <div class="search-box">
-        <h2>Verify Submission Status</h2>
-        <p>Enter your Student ID below to confirm your submission.</p>
-        <input type="text" id="studentIdInput" placeholder="Enter Student ID (e.g., 252-0123-207)">
-        <button onclick="checkSubmission()">Check Status</button>
-        
+        <h2>Verify Assignment Submission</h2>
+        <p>Enter your Student ID below to confirm your assignment submission.</p>
+        <input type="text" id="studentIdInput" placeholder="Enter Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event, 'assignment')">
+        <button onclick="checkSubmission()">Check Assignment</button>
         <div id="resultContainer" style="margin-top: 20px;"></div>
+    </div>
+
+    <!-- 2. Presentation Topic Verification -->
+    <div class="search-box">
+        <h2>Verify Presentation Topic</h2>
+        <p>Enter your Student ID below to confirm your selected presentation topic.</p>
+        <input type="text" id="presentationIdInput" placeholder="Enter Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event, 'presentation')">
+        <button onclick="checkPresentationTopic()">Check Presentation</button>
+        <div id="presentationResultContainer" style="margin-top: 20px;"></div>
     </div>
 </div>
 
 <script>
-    // Paste published CSV link from Google Sheets here:
-    // File -> Share -> Publish to Web -> Choose 'Comma-separated values (.csv)'
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
+    const PRESENTATION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
 
-    async function checkSubmission() {
-        const inputId = document.getElementById('studentIdInput').value.trim();
-        const resultContainer = document.getElementById('resultContainer');
-        
+    // CSV line parser that handles quoted text containing commas
+    function parseCSVLine(text) {
+        const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
+        const array = [];
+        let match = null;
+        while ((match = regex.exec(text))) {
+            if (match.index === regex.lastIndex) regex.lastIndex++;
+            let val = match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2];
+            if (val !== undefined) array.push(val.trim());
+        }
+        return array;
+    }
+
+    // Generic verification engine for both spreadsheets
+    async function verifyIdFromCSV(csvUrl, inputElemId, resultElemId) {
+        const inputId = document.getElementById(inputElemId).value.trim();
+        const resultContainer = document.getElementById(resultElemId);
+
         if (!inputId) {
             resultContainer.innerHTML = '<p class="status-none">Please enter a valid Student ID.</p>';
             return;
         }
 
-        if (!SHEET_CSV_URL) {
-            resultContainer.innerHTML = '<p class="status-none">System notice: Google Sheet CSV URL is not connected yet.</p>';
-            return;
-        }
-
         try {
-            const response = await fetch(SHEET_CSV_URL);
+            const response = await fetch(csvUrl);
             const data = await response.text();
-            
-            const rows = data.split('\n').map(row => row.split(','));
-            const headers = rows[0];
-            
-            // Search rows for matching Student ID
-            const matches = rows.slice(1).filter(row => row.some(cell => cell.trim() === inputId));
+
+            const lines = data.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (lines.length === 0) {
+                resultContainer.innerHTML = '<p class="status-none">No record data available.</p>';
+                return;
+            }
+
+            const headers = parseCSVLine(lines[0]);
+            const rows = lines.slice(1).map(line => parseCSVLine(line));
+
+            const matches = rows.filter(row => row.some(cell => cell.toLowerCase() === inputId.toLowerCase()));
 
             if (matches.length > 0) {
                 let tableHTML = '<p class="status-found">Record Found!</p><table class="result-table"><tr>';
                 headers.forEach(h => tableHTML += `<th>${h}</th>`);
                 tableHTML += '</tr>';
-                
+
                 matches.forEach(row => {
                     tableHTML += '<tr>';
                     row.forEach(cell => tableHTML += `<td>${cell}</td>`);
@@ -108,7 +129,25 @@
                 resultContainer.innerHTML = `<p class="status-none">No record found for Student ID: ${inputId}</p>`;
             }
         } catch (error) {
-            resultContainer.innerHTML = '<p class="status-none">Error retrieving submission data. Please try again later.</p>';
+            resultContainer.innerHTML = '<p class="status-none">Error retrieving data. Please check your internet connection.</p>';
+        }
+    }
+
+    function checkSubmission() {
+        verifyIdFromCSV(SHEET_CSV_URL, 'studentIdInput', 'resultContainer');
+    }
+
+    function checkPresentationTopic() {
+        verifyIdFromCSV(PRESENTATION_CSV_URL, 'presentationIdInput', 'presentationResultContainer');
+    }
+
+    function handleKeyPress(event, type) {
+        if (event.key === 'Enter') {
+            if (type === 'assignment') {
+                checkSubmission();
+            } else if (type === 'presentation') {
+                checkPresentationTopic();
+            }
         }
     }
 </script>
