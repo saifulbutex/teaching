@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Materials Directory</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f9; color: #333; }
+    .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+    h1 { color: #1a365d; border-bottom: 2px solid #2b6cb0; padding-bottom: 10px; }
+    .btn { display: inline-block; padding: 8px 14px; background: #2b6cb0; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold; border: none; cursor: pointer; }
+    ul { list-style-type: none; padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    a { color: #2b6cb0; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h1>Course Materials Directory</h1>
+      <button onclick="loadDriveFiles()" class="btn">🔄 Refresh</button>
+    </div>
+    <div id="drive-directory-container" style="margin-top: 20px;">
+      <p style="text-align:center; color:#666;">Loading files and subfolders...</p>
+    </div>
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxabxHsmwiDqQ8_voIf-4nzzaxSZ9oRE8S74WfO_ivtVLTOIRa9phL_jQYsAXPo5JBz/exec";
+
+    async function loadDriveFiles() {
+      const container = document.getElementById('drive-directory-container');
+      container.innerHTML = '<p style="text-align:center; color:#666;">Loading files and subfolders...</p>';
+      try {
+        const response = await fetch(APPS_SCRIPT_URL);
+        const rootFolder = await response.json();
+        if (!rootFolder) {
+          container.innerHTML = '<p style="text-align:center; color:#666;">No content found.</p>';
+          return;
+        }
+        container.innerHTML = renderFolderTree(rootFolder);
+      } catch (error) {
+        container.innerHTML = '<p style="text-align:center; color:#c53030;">Failed to load course materials.</p>';
+      }
+    }
+
+    function renderFolderTree(folder) {
+      let html = `<ul style="list-style-type: none; padding-left: 20px; margin: 5px 0;">`;
+      html += `<li style="margin-bottom: 6px;">📁 <a href="${folder.url}" target="_blank" rel="noopener noreferrer" style="font-weight: bold; color: #1a365d;">${folder.name}</a></li>`;
+      html += `<li style="padding-left: 15px;">`;
+
+      if (folder.files && folder.files.length > 0) {
+        html += `<ul style="list-style-type: none; padding-left: 15px; margin: 3px 0;">`;
+        folder.files.forEach(file => {
+          html += `<li style="margin-bottom: 4px;">📄 <a href="${file.url}" target="_blank" rel="noopener noreferrer">${file.name}</a></li>`;
+        });
+        html += `</ul>`;
+      }
+
+      if (folder.subfolders && folder.subfolders.length > 0) {
+        folder.subfolders.forEach(subfolder => {
+          html += renderFolderTree(subfolder);
+        });
+      }
+
+      html += `</li></ul>`;
+      return html;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDriveFiles);
+  </script>
+</body>
+</html>
