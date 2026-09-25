@@ -1,139 +1,116 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Course Materials Directory</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f9; color: #333; }
-    .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-    h1 { color: #1a365d; border-bottom: 2px solid #2b6cb0; padding-bottom: 10px; text-align: center; }
-    .filter-box { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
-    select, button { padding: 10px 14px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; }
-    select { flex: 1; min-width: 200px; }
-    .btn { background: #2b6cb0; color: #fff; border: none; font-weight: bold; cursor: pointer; }
-    .btn:hover { background: #2c5282; }
-    ul { list-style-type: none; padding-left: 15px; }
-    li { margin-bottom: 6px; }
-    a { color: #2b6cb0; text-decoration: none; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Course Materials Directory</h1>
+<script>
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxabxHsmwiDqQ8_voIf-4nzzaxSZ9oRE8S74WfO_ivtVLTOIRa9phL_jQYsAXPo5JBz/exec";
+  const CACHE_KEY = "drive_materials_cache";
+  const CACHE_TIME_KEY = "drive_materials_time";
+  const CACHE_DURATION = 15 * 60 * 1000; // Cache for 15 minutes
 
-    <!-- 2 Dropdown Selectors -->
-    <div class="filter-box">
-      <select id="sectionSelect">
-        <option value="">-- Select Section --</option>
-        <option value="Day">Day</option>
-        <option value="Evening">Evening</option>
-      </select>
+  let cachedDriveData = null;
 
-      <select id="courseSelect">
-        <option value="">-- Select Course --</option>
-        <option value="TE 301">TE 301 Yarn-II</option>
-        <option value="CSE 210">CSE 210 Computer Programming</option>
-        <option value="TPHY 108">TPHY 108 Physics-II</option>
-        <option value="TE 308">TE 308 Apparel-II</option>
-      </select>
+  // Pre-fetch data in background as soon as page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchDriveData(false);
+  });
 
-      <button onclick="filterMaterials()" class="btn">View Materials</button>
-    </div>
-
-    <!-- Container where matched contents render -->
-    <div id="drive-directory-container" style="margin-top: 20px;">
-      <p style="text-align:center; color:#666;">Please select both Section and Course, then click "View Materials".</p>
-    </div>
-  </div>
-
-  <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxabxHsmwiDqQ8_voIf-4nzzaxSZ9oRE8S74WfO_ivtVLTOIRa9phL_jQYsAXPo5JBz/exec";
-    let cachedDriveData = null;
-
-    async function fetchDriveData() {
-      if (cachedDriveData) return cachedDriveData;
-      const response = await fetch(APPS_SCRIPT_URL);
-      cachedDriveData = await response.json();
+  async function fetchDriveData(forceRefresh = false) {
+    if (!forceRefresh && cachedDriveData) {
       return cachedDriveData;
     }
 
-    async function filterMaterials() {
-      const section = document.getElementById('sectionSelect').value.toLowerCase().trim();
-      const course = document.getElementById('courseSelect').value.toLowerCase().trim();
-      const container = document.getElementById('drive-directory-container');
+    const localData = localStorage.getItem(CACHE_KEY);
+    const localTime = localStorage.getItem(CACHE_TIME_KEY);
 
-      if (!section || !course) {
-        container.innerHTML = '<p style="text-align:center; color:#c53030;">Please select both Section and Course.</p>';
+    // Use cached version if valid and not expired
+    if (!forceRefresh && localData && localTime && (Date.now() - localTime < CACHE_DURATION)) {
+      cachedDriveData = JSON.parse(localData);
+      return cachedDriveData;
+    }
+
+    try {
+      const response = await fetch(APPS_SCRIPT_URL);
+      const data = await response.json();
+
+      if (data) {
+        cachedDriveData = data;
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+      }
+      return cachedDriveData;
+    } catch (error) {
+      if (localData) {
+        return JSON.parse(localData); // Fallback to stale cache if network fails
+      }
+      throw error;
+    }
+  }
+
+  async function filterMaterials() {
+    const section = document.getElementById('sectionSelect').value.toLowerCase().trim();
+    const course = document.getElementById('courseSelect').value.toLowerCase().trim();
+    const container = document.getElementById('drive-directory-container');
+
+    if (!section || !course) {
+      container.innerHTML = '<p style="text-align:center; color:#c53030;">Please select both Section and Course.</p>';
+      return;
+    }
+
+    container.innerHTML = '<p style="text-align:center; color:#666;">Searching folder contents...</p>';
+
+    try {
+      const rootFolder = await fetchDriveData();
+      const matchedFolder = findMatchingFolder(rootFolder, section, course);
+
+      if (!matchedFolder) {
+        container.innerHTML = `<p style="text-align:center; color:#666;">No matching materials found for <strong>${section.toUpperCase()}</strong> and <strong>${course.toUpperCase()}</strong>.</p>`;
         return;
       }
 
-      container.innerHTML = '<p style="text-align:center; color:#666;">Searching folder contents...</p>';
+      container.innerHTML = renderFolderTree(matchedFolder);
+    } catch (error) {
+      container.innerHTML = '<p style="text-align:center; color:#c53030;">Failed to load materials. Please try again.</p>';
+    }
+  }
 
-      try {
-        const rootFolder = await fetchDriveData();
-        const matchedFolder = findMatchingFolder(rootFolder, section, course);
+  function findMatchingFolder(folder, section, course) {
+    if (!folder || !folder.subfolders) return null;
 
-        if (!matchedFolder) {
-          container.innerHTML = `<p style="text-align:center; color:#666;">No matching materials found for <strong>${section.toUpperCase()}</strong> and <strong>${course.toUpperCase()}</strong>.</p>`;
-          return;
-        }
+    for (let sub of folder.subfolders) {
+      const subName = sub.name.toLowerCase();
 
-        container.innerHTML = renderFolderTree(matchedFolder);
-      } catch (error) {
-        container.innerHTML = '<p style="text-align:center; color:#c53030;">Failed to load materials. Please try again.</p>';
+      if (subName.includes(section) && subName.includes(course)) {
+        return sub;
       }
+
+      if (subName.includes(section)) {
+        const courseFolder = sub.subfolders.find(c => c.name.toLowerCase().includes(course));
+        if (courseFolder) return courseFolder;
+      }
+
+      const deepMatch = findMatchingFolder(sub, section, course);
+      if (deepMatch) return deepMatch;
     }
 
-    // Searches subfolders recursively to match Section & Course names
-    function findMatchingFolder(folder, section, course) {
-      if (!folder || !folder.subfolders) return null;
+    return null;
+  }
 
-      for (let sub of folder.subfolders) {
-        const subName = sub.name.toLowerCase();
-        
-        // Match Section subfolder first, or match direct combined naming
-        if (subName.includes(section) && subName.includes(course)) {
-          return sub;
-        }
+  function renderFolderTree(folder) {
+    let html = `<ul style="list-style-type: none; padding-left: 0;">`;
+    html += `<li style="margin-bottom: 10px; font-size: 16px;">📁 <a href="${folder.url}" target="_blank" rel="noopener noreferrer" style="font-weight: bold; color: #1a365d;">${folder.name}</a></li>`;
 
-        // If Section folder matches, search inside its course subfolders
-        if (subName.includes(section)) {
-          const courseFolder = sub.subfolders.find(c => c.name.toLowerCase().includes(course));
-          if (courseFolder) return courseFolder;
-        }
-
-        // Search deeper level subfolders
-        const deepMatch = findMatchingFolder(sub, section, course);
-        if (deepMatch) return deepMatch;
-      }
-
-      return null;
-    }
-
-    function renderFolderTree(folder) {
-      let html = `<ul style="list-style-type: none; padding-left: 0;">`;
-      html += `<li style="margin-bottom: 10px; font-size: 16px;">📁 <a href="${folder.url}" target="_blank" rel="noopener noreferrer" style="font-weight: bold; color: #1a365d;">${folder.name}</a></li>`;
-      
-      // Render files inside matched folder
-      if (folder.files && folder.files.length > 0) {
-        html += `<ul style="list-style-type: none; padding-left: 20px; margin-bottom: 10px;">`;
-        folder.files.forEach(file => {
-          html += `<li style="margin-bottom: 6px;">📄 <a href="${file.url}" target="_blank" rel="noopener noreferrer">${file.name}</a></li>`;
-        });
-        html += `</ul>`;
-      }
-
-      // Render nested subfolders if any exist
-      if (folder.subfolders && folder.subfolders.length > 0) {
-        folder.subfolders.forEach(subfolder => {
-          html += renderFolderTree(subfolder);
-        });
-      }
-
+    if (folder.files && folder.files.length > 0) {
+      html += `<ul style="list-style-type: none; padding-left: 20px; margin-bottom: 10px;">`;
+      folder.files.forEach(file => {
+        html += `<li style="margin-bottom: 6px;">📄 <a href="${file.url}" target="_blank" rel="noopener noreferrer">${file.name}</a></li>`;
+      });
       html += `</ul>`;
-      return html;
     }
-  </script>
-</body>
-</html>
+
+    if (folder.subfolders && folder.subfolders.length > 0) {
+      folder.subfolders.forEach(subfolder => {
+        html += renderFolderTree(subfolder);
+      });
+    }
+
+    html += `</ul>`;
+    return html;
+  }
+</script>
