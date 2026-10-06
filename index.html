@@ -225,13 +225,12 @@
         }
 
         if (submissionData && submissionData.matches.length > 0) {
-            outputHTML += '<div class="section-title">Assignment Submission Verification</div>';
-            // Slice headers and row content to first 4 columns only
-            const slicedHeaders = submissionData.headers.slice(0, 4);
-            const slicedMatches = submissionData.matches.map(row => row.slice(0, 4));
-            // Fixed Code:
-            outputHTML += buildTableHTML(slicedHeaders, slicedMatches);
-        }
+        outputHTML += '<div class="section-title">Assignment Submission Verification</div>';
+        
+        // Select columns A, B, C, E, F (indices 0, 1, 2, 4, 5)
+        const selectedCols = [0, 1, 2, 4, 5];
+        outputHTML += buildTableHTML(submissionData.headers, submissionData.matches, selectedCols);
+    }
 
         if (attendanceData && attendanceData.matches.length > 0) {
             outputHTML += '<div class="section-title">Attendance Percentage Record</div>';
