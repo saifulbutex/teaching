@@ -209,10 +209,9 @@
         const tabName = SUBJECT_TAB_MAP[inputSubject] || encodeURIComponent(inputSubject);
         const attendanceUrl = `${ATTENDANCE_SHEET_BASE_URL}${encodeURIComponent(tabName)}`;
 
-        const [topicData, submissionData, presentationData, attendanceData] = await Promise.all([
-            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, null, true),
+        const [topicData, submissionData, attendanceData] = await Promise.all([
+            fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, inputId, false),
             fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputId, false),
-            fetchAndFilterCSV(PRESENTATION_CSV_URL, inputSubject, inputId, false),
             fetchAndFilterCSV(attendanceUrl, inputSubject, inputId, false)
         ]);
 
@@ -225,12 +224,11 @@
 
         if (submissionData && submissionData.matches.length > 0) {
             outputHTML += '<div class="section-title">Assignment Submission Verification</div>';
-            outputHTML += buildTableHTML(submissionData.headers, submissionData.matches);
-        }
-
-        if (presentationData && presentationData.matches.length > 0) {
-            outputHTML += '<div class="section-title">Presentation Topic Choice</div>';
-            outputHTML += buildTableHTML(presentationData.headers, presentationData.matches);
+            // Slice headers and row content to first 4 columns only
+            const slicedHeaders = submissionData.headers.slice(0, 4);
+            const slicedMatches = submissionData.matches.map(row => row.slice(0, 4));
+            // Fixed Code:
+            outputHTML += buildTableHTML(slicedHeaders, slicedMatches);
         }
 
         if (attendanceData && attendanceData.matches.length > 0) {
