@@ -88,6 +88,7 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
             border-top: 4px solid #2b6cb0;
             cursor: pointer;
+            user-select: none;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .stat-card:hover {
@@ -103,6 +104,7 @@
             font-size: 20px;
             font-weight: bold;
             color: #1a365d;
+            pointer-events: none;
         }
         .stat-card.total-card .stat-number {
             color: #276749;
@@ -114,6 +116,7 @@
             display: block;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            pointer-events: none;
         }
 
         .input-group {
@@ -249,7 +252,7 @@
         <div class="db-stats-container">
             <div class="stat-card total-card" onclick="showCategoryList('all')">
                 <span class="stat-number" id="countTotal">...</span>
-                <span class="stat-label">Total Responses</span>
+                <span class="stat-label">Total Unique Students</span>
             </div>
             <div class="stat-card" onclick="showCategoryList('current student')">
                 <span class="stat-number" id="countCurrent">...</span>
@@ -305,7 +308,7 @@
             "TE 308 (Evening)": "TE 308 (Evening)"
         };
 
-        // Global cache for student database records
+        // Global cache for deduplicated student database records
         let globalDbData = { headers: [], rows: [] };
 
         function parseCSVLine(text) {
@@ -320,7 +323,7 @@
             return array;
         }
 
-        // Fetch & calculate Database Summary Counters and cache data for dynamic filtering
+        // Fetch & calculate Database Summary Counters after deduplication
         async function loadDatabaseStats() {
             try {
                 const response = await fetch(STUDENT_DB_CSV_URL);
@@ -330,20 +333,37 @@
                 if (lines.length === 0) return;
 
                 const headers = parseCSVLine(lines[0]);
-                const dataRows = lines.slice(1).map(line => parseCSVLine(line));
-                globalDbData = { headers, rows: dataRows };
+                const rawRows = lines.slice(1).map(line => parseCSVLine(line));
+
+                // Find student ID column index (defaults to index 1 or 2 if not explicitly matched)
+                let idColIndex = headers.findIndex(h => /id|student\s*id/i.test(h));
+                if (idColIndex === -1) idColIndex = 1;
+
+                // Deduplicate rows keeping the LATEST submission (overwriting earlier ones)
+                const uniqueRowsMap = new Map();
+                rawRows.forEach(row => {
+                    const studentIdKey = (row[idColIndex] || '').trim().toLowerCase();
+                    if (studentIdKey !== '') {
+                        uniqueRowsMap.set(studentIdKey, row);
+                    } else {
+                        uniqueRowsMap.set(Symbol(), row);
+                    }
+                });
+
+                const uniqueRows = Array.from(uniqueRowsMap.values());
+                globalDbData = { headers, rows: uniqueRows };
 
                 let current = 0, alumni = 0, employed = 0, seeking = 0;
 
-                dataRows.forEach(row => {
+                uniqueRows.forEach(row => {
                     const rowStr = row.join(' ').toLowerCase();
                     if (rowStr.includes('current student')) current++;
                     if (rowStr.includes('alumni')) alumni++;
-                    if (rowStr.includes('employed')) employed++;
+                    if (rowStr.includes('employed') && !rowStr.includes('unemployed')) employed++;
                     if (rowStr.includes('unemployed') || rowStr.includes('job seeking')) seeking++;
                 });
 
-                document.getElementById('countTotal').innerText = dataRows.length;
+                document.getElementById('countTotal').innerText = uniqueRows.length;
                 document.getElementById('countCurrent').innerText = current;
                 document.getElementById('countAlumni').innerText = alumni;
                 document.getElementById('countEmployed').innerText = employed;
@@ -354,22 +374,23 @@
         }
 
         // Dynamic Filter Function triggered when clicking stat cards
-        function showCategoryList(category) {
+        window.showCategoryList = function(category) {
             const container = document.getElementById('unifiedResultContainer');
             if (!globalDbData.rows || globalDbData.rows.length === 0) {
-                container.innerHTML = '<p class="status-none">Database records are still loading or unavailable.</p>';
+                container.innerHTML = '<p class="status-none">Database records are loading or empty.</p>';
                 return;
             }
 
             const filteredRows = globalDbData.rows.filter(row => {
                 const rowStr = row.join(' ').toLowerCase();
                 if (category === 'all') return true;
+                if (category === 'employed') return rowStr.includes('employed') && !rowStr.includes('unemployed');
                 if (category === 'seeking') return rowStr.includes('unemployed') || rowStr.includes('job seeking');
                 return rowStr.includes(category.toLowerCase());
             });
 
             let displayTitle = category.toUpperCase() + ' RECORDS';
-            if (category === 'all') displayTitle = 'ALL DATABASE RESPONSES';
+            if (category === 'all') displayTitle = 'ALL UNIQUE STUDENT RESPONSES';
             if (category === 'seeking') displayTitle = 'JOB SEEKING / UNEMPLOYED RECORDS';
 
             if (filteredRows.length === 0) {
@@ -380,7 +401,7 @@
                     ${buildTableHTML(globalDbData.headers, filteredRows)}
                 `;
             }
-        }
+        };
 
         async function fetchAndFilterCSV(csvUrl, selectedSubject, studentId = null, isTopicSheet = false) {
             try {
