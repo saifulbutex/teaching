@@ -68,6 +68,48 @@
         .card a:hover {
             background: #2c5282;
         }
+
+        /* Database Summary Stats Bar */
+        .db-stats-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 20px auto 30px auto;
+            max-width: 900px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            flex: 1;
+            min-width: 130px;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 12px 10px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            border-top: 4px solid #2b6cb0;
+        }
+        .stat-card.total-card {
+            border-top-color: #276749;
+            background-color: #f0fff4;
+        }
+        .stat-number {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+            color: #1a365d;
+        }
+        .stat-card.total-card .stat-number {
+            color: #276749;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #555;
+            margin-top: 4px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .input-group {
             display: flex;
             flex-direction: column;
@@ -170,17 +212,17 @@
         <div class="grid">
             <div class="card">
                 <h3>Course Materials</h3>
-                <p>Access lecture slides, reading materials</p>
+                <p>Access lecture slides, reading materials.</p>
                 <a href="materials.html" target="_blank">Open the contents</a>
             </div>
             <div class="card">
                 <h3>Submit Assignment</h3>
-                <p>Upload your assignment file. Don't need to upload presentation file</p>
+                <p>Upload your assignment file. Don't need to upload presentation file.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSetb1qkOJCOo-je8nGlXzzWT0elucVY7oG4AZqVvjTeTogl4w/viewform?usp=header" target="_blank">Submission Form</a>
             </div>
             <div class="card">
                 <h3>Topic Selection</h3>
-                <p>Choose your assignment & presentation topic. You have to present in the classroom</p>
+                <p>Choose your assignment & presentation topic. You have to present in the classroom.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
             </div>
             <!-- Card 1: Quizzes -->
@@ -189,11 +231,35 @@
                 <p>Participate or view details for course quizzes.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSdKz9hx8FoOWzMlH_fM4DVd0NJPJxGzran4tVEexklj2OfBDw/viewform" target="_blank">Take Quiz</a>
             </div>
-            <!-- Card 2: Alumni & Current Student Database -->
+            <!-- Card 2: Student Database -->
             <div class="card">
-                <h3>Alumni & Current Student Database</h3>
-                <p>Update your information in the database.</p>
+                <h3>Alumni & Current Student</h3>
+                <p>Update your information in database.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLScdA_yH0SSadxM3PiHonx8OqEaYUAmiEHq8-FF0GW-RVg9sug/viewform?usp=header" target="_blank">Database Form</a>
+            </div>
+        </div>
+
+        <!-- Database Overview Counter Cards -->
+        <div class="db-stats-container">
+            <div class="stat-card total-card">
+                <span class="stat-number" id="countTotal">...</span>
+                <span class="stat-label">Total Responses</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="countCurrent">...</span>
+                <span class="stat-label">Current Students</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="countAlumni">...</span>
+                <span class="stat-label">Alumni</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="countEmployed">...</span>
+                <span class="stat-label">Employed</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="countSeeking">...</span>
+                <span class="stat-label">Job Seeking</span>
             </div>
         </div>
 
@@ -243,6 +309,38 @@
                 if (val !== undefined) array.push(val.trim());
             }
             return array;
+        }
+
+        // Fetch & calculate Database Summary Counters
+        async function loadDatabaseStats() {
+            try {
+                const response = await fetch(STUDENT_DB_CSV_URL);
+                if (!response.ok) return;
+                const text = await response.text();
+                const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+                
+                // Exclude header row from count
+                const dataRows = lines.slice(1);
+                const totalFulfilled = dataRows.length;
+
+                let current = 0, alumni = 0, employed = 0, seeking = 0;
+
+                dataRows.forEach(line => {
+                    const rowLower = line.toLowerCase();
+                    if (rowLower.includes('current student')) current++;
+                    if (rowLower.includes('alumni')) alumni++;
+                    if (rowLower.includes('employed')) employed++;
+                    if (rowLower.includes('unemployed') || rowLower.includes('job seeking')) seeking++;
+                });
+
+                document.getElementById('countTotal').innerText = totalFulfilled;
+                document.getElementById('countCurrent').innerText = current;
+                document.getElementById('countAlumni').innerText = alumni;
+                document.getElementById('countEmployed').innerText = employed;
+                document.getElementById('countSeeking').innerText = seeking;
+            } catch (e) {
+                console.error("Failed to load statistics:", e);
+            }
         }
 
         async function fetchAndFilterCSV(csvUrl, selectedSubject, studentId = null, isTopicSheet = false) {
@@ -321,7 +419,6 @@
 
             if (quizData && quizData.matches.length > 0) {
                 outputHTML += '<div class="section-title">Quiz Marks & Details</div>';
-                // First 4 columns (indices 0, 1, 2, 3)
                 const quizCols = [0, 1, 2, 3];
                 outputHTML += buildTableHTML(quizData.headers, quizData.matches, quizCols);
             }
@@ -370,6 +467,9 @@
                 searchAllStudentStatus();
             }
         }
+
+        // Automatically fetch database counts when page opens
+        window.addEventListener('DOMContentLoaded', loadDatabaseStats);
     </script>
 </body>
 </html>
