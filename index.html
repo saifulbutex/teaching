@@ -87,6 +87,12 @@
             text-align: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
             border-top: 4px solid #2b6cb0;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
         .stat-card.total-card {
             border-top-color: #276749;
@@ -239,25 +245,25 @@
             </div>
         </div>
 
-        <!-- Database Overview Counter Cards -->
+        <!-- Dynamic Filterable Database Stat Cards -->
         <div class="db-stats-container">
-            <div class="stat-card total-card">
+            <div class="stat-card total-card" onclick="showCategoryList('all')">
                 <span class="stat-number" id="countTotal">...</span>
                 <span class="stat-label">Total Responses</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="showCategoryList('current student')">
                 <span class="stat-number" id="countCurrent">...</span>
                 <span class="stat-label">Current Students</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="showCategoryList('alumni')">
                 <span class="stat-number" id="countAlumni">...</span>
                 <span class="stat-label">Alumni</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="showCategoryList('employed')">
                 <span class="stat-number" id="countEmployed">...</span>
                 <span class="stat-label">Employed</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="showCategoryList('seeking')">
                 <span class="stat-number" id="countSeeking">...</span>
                 <span class="stat-label">Job Seeking</span>
             </div>
@@ -299,6 +305,9 @@
             "TE 308 (Evening)": "TE 308 (Evening)"
         };
 
+        // Global cache for student database records
+        let globalDbData = { headers: [], rows: [] };
+
         function parseCSVLine(text) {
             const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
             const array = [];
@@ -311,35 +320,65 @@
             return array;
         }
 
-        // Fetch & calculate Database Summary Counters
+        // Fetch & calculate Database Summary Counters and cache data for dynamic filtering
         async function loadDatabaseStats() {
             try {
                 const response = await fetch(STUDENT_DB_CSV_URL);
                 if (!response.ok) return;
                 const text = await response.text();
                 const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-                
-                // Exclude header row from count
-                const dataRows = lines.slice(1);
-                const totalFulfilled = dataRows.length;
+                if (lines.length === 0) return;
+
+                const headers = parseCSVLine(lines[0]);
+                const dataRows = lines.slice(1).map(line => parseCSVLine(line));
+                globalDbData = { headers, rows: dataRows };
 
                 let current = 0, alumni = 0, employed = 0, seeking = 0;
 
-                dataRows.forEach(line => {
-                    const rowLower = line.toLowerCase();
-                    if (rowLower.includes('current student')) current++;
-                    if (rowLower.includes('alumni')) alumni++;
-                    if (rowLower.includes('employed')) employed++;
-                    if (rowLower.includes('unemployed') || rowLower.includes('job seeking')) seeking++;
+                dataRows.forEach(row => {
+                    const rowStr = row.join(' ').toLowerCase();
+                    if (rowStr.includes('current student')) current++;
+                    if (rowStr.includes('alumni')) alumni++;
+                    if (rowStr.includes('employed')) employed++;
+                    if (rowStr.includes('unemployed') || rowStr.includes('job seeking')) seeking++;
                 });
 
-                document.getElementById('countTotal').innerText = totalFulfilled;
+                document.getElementById('countTotal').innerText = dataRows.length;
                 document.getElementById('countCurrent').innerText = current;
                 document.getElementById('countAlumni').innerText = alumni;
                 document.getElementById('countEmployed').innerText = employed;
                 document.getElementById('countSeeking').innerText = seeking;
             } catch (e) {
                 console.error("Failed to load statistics:", e);
+            }
+        }
+
+        // Dynamic Filter Function triggered when clicking stat cards
+        function showCategoryList(category) {
+            const container = document.getElementById('unifiedResultContainer');
+            if (!globalDbData.rows || globalDbData.rows.length === 0) {
+                container.innerHTML = '<p class="status-none">Database records are still loading or unavailable.</p>';
+                return;
+            }
+
+            const filteredRows = globalDbData.rows.filter(row => {
+                const rowStr = row.join(' ').toLowerCase();
+                if (category === 'all') return true;
+                if (category === 'seeking') return rowStr.includes('unemployed') || rowStr.includes('job seeking');
+                return rowStr.includes(category.toLowerCase());
+            });
+
+            let displayTitle = category.toUpperCase() + ' RECORDS';
+            if (category === 'all') displayTitle = 'ALL DATABASE RESPONSES';
+            if (category === 'seeking') displayTitle = 'JOB SEEKING / UNEMPLOYED RECORDS';
+
+            if (filteredRows.length === 0) {
+                container.innerHTML = `<p class="status-none">No records found under category: ${displayTitle}</p>`;
+            } else {
+                container.innerHTML = `
+                    <div class="section-title">${displayTitle} (${filteredRows.length})</div>
+                    ${buildTableHTML(globalDbData.headers, filteredRows)}
+                `;
             }
         }
 
