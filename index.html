@@ -158,28 +158,48 @@
             border-bottom: 2px solid #2b6cb0;
             color: #1a365d;
         }
+
+        /* Banded Blue & Sky Blue Table Styling */
         .table-wrapper {
             width: 100%;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .result-table {
             width: 100%;
             table-layout: auto;
             border-collapse: collapse;
         }
-        .result-table th, .result-table td {
-            border: 1px solid #ddd;
-            padding: 10px;
+        .result-table th {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            white-space: nowrap;
+            border: 1px solid #1a365d;
+        }
+        .result-table td {
+            padding: 10px 12px;
             text-align: left;
             font-size: 13px;
             word-break: break-word;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
         }
-        .result-table th {
-            background-color: #edf2f7;
-            white-space: nowrap;
+        .result-table tr:nth-child(odd) td {
+            background-color: #ffffff;
         }
+        .result-table tr:nth-child(even) td {
+            background-color: #e0f2fe;
+        }
+        .result-table tr:hover td {
+            background-color: #bae6fd;
+        }
+
         .status-none {
             color: #c53030;
             font-weight: bold;
@@ -234,13 +254,11 @@
                 <p>Choose your assignment & presentation topic. You have to present in the classroom.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
             </div>
-            <!-- Card 1: Quizzes -->
             <div class="card">
                 <h3>Quizzes</h3>
                 <p>Participate or view details for course quizzes.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSdKz9hx8FoOWzMlH_fM4DVd0NJPJxGzran4tVEexklj2OfBDw/viewform" target="_blank">Take Quiz</a>
             </div>
-            <!-- Card 2: Student Database -->
             <div class="card">
                 <h3>Alumni & Current Student</h3>
                 <p>Update your information in database.</p>
@@ -248,7 +266,6 @@
             </div>
         </div>
 
-        <!-- Dynamic Filterable Database Stat Cards -->
         <div class="db-stats-container">
             <div class="stat-card total-card" onclick="showCategoryList('all')">
                 <span class="stat-number" id="countTotal">...</span>
@@ -292,13 +309,11 @@
     </div>
 
     <script>
-        // Data Sources
         const ASSIGNMENT_TOPICS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
         const ASSIGNMENT_SUBMISSION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
         const QUIZZES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRCcHn-dew2tRscaxHsQQuOuljh9_2DofUH99BqwLE6HML4xa4pwj3Ql4xddGMalHTDAU4iP8o3r5oB/pub?output=csv';
         const STUDENT_DB_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSrjD8F-rS6ipCy3llKmS3mRfnnjALEiwMBktGU9bcj6nUkVAhZw25szuDJnYxG7xj5KsEjERfOgGhj/pub?output=csv';
 
-        // Attendance Base URL
         const ATTENDANCE_SHEET_BASE_URL = 'https://docs.google.com/spreadsheets/d/1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM/gviz/tq?tqx=out:csv&sheet=';
         const SUBJECT_TAB_MAP = {
             "TE 301 (Day)": "TE 301 (Day)",
@@ -308,7 +323,6 @@
             "TE 308 (Evening)": "TE 308 (Evening)"
         };
 
-        // Global cache for deduplicated student database records
         let globalDbData = { headers: [], rows: [] };
 
         function parseCSVLine(text) {
@@ -323,7 +337,6 @@
             return array;
         }
 
-        // Fetch & calculate Database Summary Counters after deduplication
         async function loadDatabaseStats() {
             try {
                 const response = await fetch(STUDENT_DB_CSV_URL);
@@ -335,11 +348,9 @@
                 const headers = parseCSVLine(lines[0]);
                 const rawRows = lines.slice(1).map(line => parseCSVLine(line));
 
-                // Find student ID column index (defaults to index 1 or 2 if not explicitly matched)
                 let idColIndex = headers.findIndex(h => /id|student\s*id/i.test(h));
                 if (idColIndex === -1) idColIndex = 1;
 
-                // Deduplicate rows keeping the LATEST submission (overwriting earlier ones)
                 const uniqueRowsMap = new Map();
                 rawRows.forEach(row => {
                     const studentIdKey = (row[idColIndex] || '').trim().toLowerCase();
@@ -373,7 +384,6 @@
             }
         }
 
-        // Dynamic Filter Function triggered when clicking stat cards
         window.showCategoryList = function(category) {
             const container = document.getElementById('unifiedResultContainer');
             if (!globalDbData.rows || globalDbData.rows.length === 0) {
@@ -528,7 +538,6 @@
             }
         }
 
-        // Automatically fetch database counts when page opens
         window.addEventListener('DOMContentLoaded', loadDatabaseStats);
     </script>
 </body>
