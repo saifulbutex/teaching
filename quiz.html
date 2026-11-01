@@ -261,7 +261,6 @@
 
 <script>
     const SPREADSHEET_ID = '1JLt7JzZ8B3AiEqXmuQqOxxzSCOKZsDzQHPg9vS2wlCM';
-    // Replace with your SheetDB API URL or Form endpoint URL for Quiz_Scores_Registry
     const SCORE_ENDPOINT_URL = 'https://sheetdb.io/api/v1/e1pgxioa61cif';
 
     let selectedQuestions = [];
@@ -312,7 +311,6 @@
         document.getElementById('setup-box').style.display = 'none';
         document.getElementById('loading-spinner').style.display = 'block';
 
-        // Dynamically fetch from the selected subject tab
         const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetTab}`;
 
         try {
@@ -320,10 +318,15 @@
             const csvText = await response.text();
             const rows = parseCSV(csvText);
 
-            // Filter valid question rows (Must have question text + at least 2 options)
-            let validRows = rows.filter(row => {
-                if (row.length < 6) return false;
+            // Explicitly drop header row (row index 0)
+            let dataRows = rows.slice(1);
+
+            // Filter valid question rows (Must have question text + at least 2 valid options + correct answer)
+            let validRows = dataRows.filter(row => {
+                if (row.length < 7) return false;
                 let qText = row[1] ? row[1].trim() : "";
+                let correctAns = row[6] ? row[6].trim() : "";
+                
                 let optCount = 0;
                 for (let c = 2; c <= 5; c++) {
                     let optVal = row[c] ? row[c].trim() : "";
@@ -331,7 +334,7 @@
                         optCount++;
                     }
                 }
-                return qText !== "" && qText.toLowerCase() !== "question" && optCount >= 2;
+                return qText !== "" && correctAns !== "" && optCount >= 2;
             });
 
             if (validRows.length === 0) {
@@ -377,7 +380,10 @@
                 let label = document.createElement('label');
                 label.className = 'option-label';
                 
-                let isCorrect = (opt.trim().toLowerCase() === correctAnswer.toLowerCase());
+                // Clean & normalize both strings for strict equality check
+                let cleanOpt = opt.trim().toLowerCase();
+                let cleanAns = correctAnswer.trim().toLowerCase();
+                let isCorrect = (cleanOpt === cleanAns);
                 
                 label.innerHTML = `
                     <input type="radio" name="q_${qIdx}" value="${opt.trim()}" data-correct="${isCorrect}">
@@ -424,12 +430,15 @@
         document.getElementById('final-score').innerText = scoreString;
         document.getElementById('score-box').style.display = 'block';
 
-        // Submit parameters to endpoint mapped to Quiz_Scores_Registry
-        if (SCORE_ENDPOINT_URL && SCORE_ENDPOINT_URL !== 'YOUR_SHEETDB_OR_FORM_ENDPOINT_URL') {
+        // Submit parameters to your SheetDB API endpoint
+        if (SCORE_ENDPOINT_URL) {
             try {
                 await fetch(SCORE_ENDPOINT_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 
+                        "Accept": "application/json",
+                        "Content-Type": "application/json" 
+                    },
                     body: JSON.stringify({
                         data: {
                             "Response Time": timeString,
@@ -441,7 +450,7 @@
                     })
                 });
             } catch (error) {
-                console.error("Error submitting score:", error);
+                console.error("Error submitting score to SheetDB:", error);
             }
         }
     }
