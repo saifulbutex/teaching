@@ -166,6 +166,38 @@
             color: var(--text);
         }
 
+        .review-card {
+            background: #ffffff;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+
+        .review-option {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+            border: 1px solid transparent;
+            background: #f8fafc;
+        }
+
+        .option-correct {
+            background-color: #dcfce7 !important;
+            border-color: #16a34a !important;
+            color: #166534;
+            font-weight: 600;
+        }
+
+        .option-wrong {
+            background-color: #fee2e2 !important;
+            border-color: #dc2626 !important;
+            color: #991b1b;
+            text-decoration: line-through;
+        }
+
         .nav-back {
             display: inline-block;
             margin-bottom: 15px;
@@ -224,7 +256,7 @@
         </form>
     </div>
 
-    <!-- STEP 3: Results Display -->
+    <!-- STEP 3: Results Display & Review -->
     <div id="score-box">
         <div class="score-display">
             <h2 style="color: var(--primary); margin-top: 0;">Submission Confirmation</h2>
@@ -255,7 +287,11 @@
             <p style="margin-bottom: 5px; font-weight: 600;">Your Final Score:</p>
             <div class="score-number" id="final-score">0 / 10</div>
         </div>
-        <button class="btn" onclick="location.reload()">Take Another Quiz (Fresh Questions)</button>
+
+        <h3 style="color: var(--primary); margin-top: 30px;">Detailed Question Review</h3>
+        <div id="review-container"></div>
+
+        <button class="btn" style="margin-top: 20px;" onclick="location.reload()">Take Another Quiz (Fresh Questions)</button>
     </div>
 </div>
 
@@ -402,13 +438,53 @@
     async function submitQuiz() {
         let score = 0;
         let total = selectedQuestions.length;
+        let reviewHTML = '';
 
-        for (let i = 0; i < total; i++) {
-            let selectedOpt = document.querySelector(`input[name="q_${i}"]:checked`);
-            if (selectedOpt && selectedOpt.getAttribute('data-correct') === "true") {
+        selectedQuestions.forEach((q, qIdx) => {
+            let qText = q[1].trim();
+            let rawOptions = [q[2], q[3], q[4], q[5]].filter(o => o && o.trim() !== "" && o.toUpperCase() !== "N/A" && o !== "-");
+            let correctAnswer = q[6] ? q[6].trim().toLowerCase() : "";
+
+            // Find what the student selected
+            let selectedInput = document.querySelector(`input[name="q_${qIdx}"]:checked`);
+            let studentVal = selectedInput ? selectedInput.value.trim().toLowerCase() : "";
+            
+            let isUserCorrect = false;
+
+            reviewHTML += `<div class="review-card">
+                <div class="question-title">${qIdx + 1}. ${qText}</div>`;
+
+            rawOptions.forEach(opt => {
+                let cleanOpt = opt.trim().toLowerCase();
+                let isOptCorrect = (correctAnswer === cleanOpt || correctAnswer.endsWith(cleanOpt) || correctAnswer.includes(cleanOpt));
+                let isSelected = (studentVal === cleanOpt);
+
+                let optionClass = "";
+                let indicator = "";
+
+                if (isOptCorrect) {
+                    // Correct option ALWAYS shows in green
+                    optionClass = "option-correct";
+                    indicator = " ✓ (Correct Answer)";
+                } else if (isSelected && !isOptCorrect) {
+                    // Selected wrong option shows in red
+                    optionClass = "option-wrong";
+                    indicator = " ✗ (Your Answer)";
+                }
+
+                if (isSelected && isOptCorrect) {
+                    isUserCorrect = true;
+                }
+
+                reviewHTML += `<div class="review-option ${optionClass}">${opt.trim()}${indicator}</div>`;
+            });
+
+            reviewHTML += `</div>`;
+
+            if (isUserCorrect) {
                 score++;
             }
-        }
+        });
 
         const name = document.getElementById('student-name').value.trim();
         const id = document.getElementById('student-id').value.trim();
@@ -419,12 +495,15 @@
         const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
         const scoreString = `${score} / ${total}`;
 
-        // Populate 2-line summary table
+        // Populate summary table
         document.getElementById('res-time').innerText = timeString;
         document.getElementById('res-id').innerText = id;
         document.getElementById('res-name').innerText = name;
         document.getElementById('res-subject').innerText = subjectText;
         document.getElementById('res-score').innerText = scoreString;
+
+        // Render detailed review container
+        document.getElementById('review-container').innerHTML = reviewHTML;
 
         document.getElementById('quiz-box').style.display = 'none';
         document.getElementById('final-score').innerText = scoreString;
