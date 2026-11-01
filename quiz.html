@@ -137,6 +137,33 @@
             font-size: 2.5rem;
             font-weight: bold;
             color: var(--correct);
+            margin-top: 10px;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .summary-table th {
+            background-color: var(--primary);
+            color: #ffffff;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 13px;
+            border: 1px solid var(--primary);
+        }
+
+        .summary-table td {
+            padding: 10px 12px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            color: var(--text);
         }
 
         .nav-back {
@@ -200,8 +227,32 @@
     <!-- STEP 3: Results Display -->
     <div id="score-box">
         <div class="score-display">
-            <h2 id="result-student-info"></h2>
-            <p>Your Final Score:</p>
+            <h2 style="color: var(--primary); margin-top: 0;">Submission Confirmation</h2>
+            
+            <div style="overflow-x: auto;">
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Response Time</th>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Subject</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="res-time">-</td>
+                            <td id="res-id">-</td>
+                            <td id="res-name">-</td>
+                            <td id="res-subject">-</td>
+                            <td id="res-score" style="font-weight: bold; color: var(--correct);">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p style="margin-bottom: 5px; font-weight: 600;">Your Final Score:</p>
             <div class="score-number" id="final-score">0 / 10</div>
         </div>
         <button class="btn" onclick="location.reload()">Take Another Quiz (Fresh Questions)</button>
@@ -210,6 +261,9 @@
 
 <script>
     const SPREADSHEET_ID = '1JLt7JzZ8B3AiEqXmuQqOxxzSCOKZsDzQHPg9vS2wlCM';
+    // Replace with your SheetDB API URL or Form endpoint URL for Quiz_Scores_Registry
+    const SCORE_ENDPOINT_URL = 'YOUR_SHEETDB_OR_FORM_ENDPOINT_URL';
+
     let selectedQuestions = [];
 
     // Helper: Parse raw CSV text into array of rows
@@ -258,7 +312,8 @@
         document.getElementById('setup-box').style.display = 'none';
         document.getElementById('loading-spinner').style.display = 'block';
 
-        const csvUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0PzTm46tQZyTh-ik8KWW14Tj8anVO0OTf7kUXHgy-5czRf2PgAW53q-2KPP0OKeMfMw-V003XG435/pub?output=csv`;
+        // Dynamically fetch from the selected subject tab
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${sheetTab}`;
 
         try {
             const response = await fetch(csvUrl);
@@ -338,7 +393,7 @@
         document.getElementById('quiz-box').style.display = 'block';
     }
 
-    function submitQuiz() {
+    async function submitQuiz() {
         let score = 0;
         let total = selectedQuestions.length;
 
@@ -351,12 +406,44 @@
 
         const name = document.getElementById('student-name').value.trim();
         const id = document.getElementById('student-id').value.trim();
-        const subject = document.getElementById('subject-select').options[document.getElementById('subject-select').selectedIndex].text;
+        const subjectSelect = document.getElementById('subject-select');
+        const subjectText = subjectSelect.options[subjectSelect.selectedIndex].text;
+
+        const now = new Date();
+        const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
+        const scoreString = `${score} / ${total}`;
+
+        // Populate 2-line summary table
+        document.getElementById('res-time').innerText = timeString;
+        document.getElementById('res-id').innerText = id;
+        document.getElementById('res-name').innerText = name;
+        document.getElementById('res-subject').innerText = subjectText;
+        document.getElementById('res-score').innerText = scoreString;
 
         document.getElementById('quiz-box').style.display = 'none';
-        document.getElementById('result-student-info').innerText = `${name} (${id}) - ${subject}`;
-        document.getElementById('final-score').innerText = `${score} / ${total}`;
+        document.getElementById('final-score').innerText = scoreString;
         document.getElementById('score-box').style.display = 'block';
+
+        // Submit parameters to endpoint mapped to Quiz_Scores_Registry
+        if (SCORE_ENDPOINT_URL && SCORE_ENDPOINT_URL !== 'YOUR_SHEETDB_OR_FORM_ENDPOINT_URL') {
+            try {
+                await fetch(SCORE_ENDPOINT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        data: {
+                            "Response Time": timeString,
+                            "ID": id,
+                            "Name": name,
+                            "Subject": subjectText,
+                            "Score": scoreString
+                        }
+                    })
+                });
+            } catch (error) {
+                console.error("Error submitting score:", error);
+            }
+        }
     }
 </script>
 
