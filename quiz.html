@@ -380,10 +380,10 @@
                 let label = document.createElement('label');
                 label.className = 'option-label';
                 
-                // Clean & normalize both strings for strict equality check
+                // Clean and match taking into account sheet column G format (e.g., "B) Bobbin leading principle")
                 let cleanOpt = opt.trim().toLowerCase();
                 let cleanAns = correctAnswer.trim().toLowerCase();
-                let isCorrect = (cleanOpt === cleanAns);
+                let isCorrect = (cleanAns === cleanOpt || cleanAns.endsWith(cleanOpt) || cleanAns.includes(cleanOpt));
                 
                 label.innerHTML = `
                     <input type="radio" name="q_${qIdx}" value="${opt.trim()}" data-correct="${isCorrect}">
