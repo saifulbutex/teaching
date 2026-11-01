@@ -267,7 +267,7 @@
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
             </div>
             
-            <!-- Quizzes Card with 5 Subject Options & Exact Links -->
+            <!-- Quizzes Card with Link to quiz.html -->
             <div class="card">
                 <h3>Quiz</h3>
                 <p>Select your subject and participate in the quiz.</p>
@@ -326,7 +326,7 @@
     <script>
         const ASSIGNMENT_TOPICS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
         const ASSIGNMENT_SUBMISSION_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9GBX4TZugOk_yFQJ-NAzwepUcSAfyTC9TDXga-wIeyGaacMOmWUuZD1dtwJI70OmkrPrdVBIHbOgg/pub?gid=863996075&single=true&output=csv';
-        const QUIZZES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRCcHn-dew2tRscaxHsQQuOuljh9_2DofUH99BqwLE6HML4xa4pwj3Ql4xddGMalHTDAU4iP8o3r5oB/pub?output=csv';
+        const QUIZZES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQoa1KkrEwDWIv-U91QmRAqNppc8pC-07_pErrhFnVr6B4GP-8NO3nRD6kr9dAHOMV09HljsW9m_Isa/pub?output=csv';
         const STUDENT_DB_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSrjD8F-rS6ipCy3llKmS3mRfnnjALEiwMBktGU9bcj6nUkVAhZw25szuDJnYxG7xj5KsEjERfOgGhj/pub?output=csv';
 
         const ATTENDANCE_SHEET_BASE_URL = 'https://docs.google.com/spreadsheets/d/1R-T1Dg5EwhAL_PyhKEHU-CASnL468bWyU0p4HRMi6KM/gviz/tq?tqx=out:csv&sheet=';
@@ -339,17 +339,6 @@
         };
 
         let globalDbData = { headers: [], rows: [] };
-
-        // Function to handle dynamic redirection for the quiz selection
-        function openQuizForm() {
-            const selectEl = document.getElementById('quizSubjectSelect');
-            const selectedUrl = selectEl.value;
-            if (!selectedUrl) {
-                alert("Please select a subject first!");
-                return;
-            }
-            window.open(selectedUrl, '_blank');
-        }
 
         function parseCSVLine(text) {
             const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
@@ -468,7 +457,13 @@
                         if (isEvening && rowStr.includes('day')) shiftMatch = false;
                         return hasSubject && shiftMatch;
                     }
-                    return hasId;
+
+                    // Strict shift check for sheets with subject columns (such as Quiz registry)
+                    let shiftMatch = true;
+                    if (isDay && rowStr.includes('evening')) shiftMatch = false;
+                    if (isEvening && rowStr.includes('day') && !rowStr.includes('evening')) shiftMatch = false;
+
+                    return hasId && shiftMatch;
                 });
 
                 return { headers, matches };
@@ -515,7 +510,7 @@
 
             if (quizData && quizData.matches.length > 0) {
                 outputHTML += '<div class="section-title">Quiz Marks & Details</div>';
-                const quizCols = [0, 1, 2, 3];
+                const quizCols = [0, 1, 2, 3, 4]; // Shows: Response Time, ID, Name, Subject, Score
                 outputHTML += buildTableHTML(quizData.headers, quizData.matches, quizCols);
             }
 
