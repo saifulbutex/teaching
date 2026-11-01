@@ -1,1 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Student Quiz | ADUST</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --correct: #16a34a;
+            --wrong: #dc2626;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 750px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            background-color: var(--secondary);
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary);
+        }
+
+        .question-card {
+            background: #f1f5f9;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .question-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: 12px;
+        }
+
+        .option-label {
+            display: block;
+            background: #ffffff;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .option-label:hover {
+            border-color: var(--secondary);
+            background: #eff6ff;
+        }
+
+        .option-label input {
+            margin-right: 10px;
+        }
+
+        #quiz-box, #score-box, #loading-spinner {
+            display: none;
+        }
+
+        .loader {
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin: 20px 0;
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 20px;
+            background: #ecfdf5;
+            border: 2px solid var(--correct);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .score-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--correct);
+        }
+
+        .nav-back {
+            display: inline-block;
+            margin-bottom: 15px;
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .nav-back:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="index.html" class="nav-back">&larr; Back to Main Site</a>
+    <h1>Quiz Assessment</h1>
+
+    <!-- STEP 1: Student Details & Subject Selection -->
+    <div id="setup-box">
+        <div class="form-group">
+            <label for="student-name">Full Name:</label>
+            <input type="text" id="student-name" placeholder="Enter your full name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="student-id">Student ID:</label>
+            <input type="text" id="student-id" placeholder="Enter your student ID" required>
+        </div>
+
+        <div class="form-group">
+            <label for="subject-select">Select Subject Course:</label>
+            <select id="subject-select">
+                <option value="TE_301_Day">TE 301 (Day)</option>
+                <option value="TE_301_Evening">TE 301 (Evening)</option>
+                <option value="CSE_210_Evening">CSE 210 (Evening)</option>
+                <option value="TPHY_108_Evening">TPHY 108 (Evening)</option>
+                <option value="TE_308_Evening">TE 308 (Evening)</option>
+            </select>
+        </div>
+
+        <button class="btn" onclick="startQuiz()">Start Quiz</button>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div id="loading-spinner" class="loader">
+        Fetching questions and generating a quiz set...
+    </div>
+
+    <!-- STEP 2: Interactive Quiz View -->
+    <div id="quiz-box">
+        <form id="quiz-form">
+            <div id="questions-container"></div>
+            <button type="button" class="btn" onclick="submitQuiz()">Submit Answers</button>
+        </form>
+    </div>
+
+    <!-- STEP 3: Results Display -->
+    <div id="score-box">
+        <div class="score-display">
+            <h2 id="result-student-info"></h2>
+            <p>Your Final Score:</p>
+            <div class="score-number" id="final-score">0 / 10</div>
+        </div>
+        <button class="btn" onclick="location.reload()">Take Another Quiz (Fresh Questions)</button>
+    </div>
+</div>
+
+<script>
+    const SPREADSHEET_ID = '1JLt7JzZ8B3AiEqXmuQqOxxzSCOKZsDzQHPg9vS2wlCM';
+    let selectedQuestions = [];
+
+    // Helper: Parse raw CSV text into array of rows
+    function parseCSV(text) {
+        let lines = text.split('\n');
+        return lines.map(line => {
+            let values = [];
+            let insideQuotes = false;
+            let val = '';
+            for (let c of line) {
+                if (c === '"' && insideQuotes) {
+                    insideQuotes = false;
+                } else if (c === '"' && !insideQuotes) {
+                    insideQuotes = true;
+                } else if (c === ',' && !insideQuotes) {
+                    values.push(val.trim().replace(/^"|"$/g, ''));
+                    val = '';
+                } else {
+                    val += c;
+                }
+            }
+            values.push(val.trim().replace(/^"|"$/g, ''));
+            return values;
+        });
+    }
+
+    // Fisher-Yates Random Shuffle
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    async function startQuiz() {
+        const name = document.getElementById('student-name').value.trim();
+        const id = document.getElementById('student-id').value.trim();
+        const sheetTab = document.getElementById('subject-select').value;
+
+        if (!name || !id) {
+            alert("Please enter both your Name and Student ID.");
+            return;
+        }
+
+        document.getElementById('setup-box').style.display = 'none';
+        document.getElementById('loading-spinner').style.display = 'block';
+
+        const csvUrl = `https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0PzTm46tQZyTh-ik8KWW14Tj8anVO0OTf7kUXHgy-5czRf2PgAW53q-2KPP0OKeMfMw-V003XG435/pub?output=csv`;
+
+        try {
+            const response = await fetch(csvUrl);
+            const csvText = await response.text();
+            const rows = parseCSV(csvText);
+
+            // Filter valid question rows (Must have question text + at least 2 options)
+            let validRows = rows.filter(row => {
+                if (row.length < 6) return false;
+                let qText = row[1] ? row[1].trim() : "";
+                let optCount = 0;
+                for (let c = 2; c <= 5; c++) {
+                    let optVal = row[c] ? row[c].trim() : "";
+                    if (optVal !== "" && optVal.toUpperCase() !== "N/A" && optVal !== "-") {
+                        optCount++;
+                    }
+                }
+                return qText !== "" && qText.toLowerCase() !== "question" && optCount >= 2;
+            });
+
+            if (validRows.length === 0) {
+                alert("No valid questions found in this sheet tab!");
+                location.reload();
+                return;
+            }
+
+            // Shuffle valid questions and pick 10
+            let shuffled = shuffleArray(validRows);
+            selectedQuestions = shuffled.slice(0, Math.min(10, shuffled.length));
+
+            renderQuiz();
+
+        } catch (error) {
+            console.error(error);
+            alert("Failed to load questions. Make sure your Google Sheet is published to the web!");
+            location.reload();
+        }
+    }
+
+    function renderQuiz() {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = '';
+
+        selectedQuestions.forEach((q, qIdx) => {
+            let qText = q[1].trim();
+            let rawOptions = [q[2], q[3], q[4], q[5]].filter(o => o && o.trim() !== "" && o.toUpperCase() !== "N/A" && o !== "-");
+            let correctAnswer = q[6] ? q[6].trim() : "";
+
+            // Shuffle options for each question
+            let shuffledOptions = shuffleArray(rawOptions);
+
+            let qCard = document.createElement('div');
+            qCard.className = 'question-card';
+
+            let qTitle = document.createElement('div');
+            qTitle.className = 'question-title';
+            qTitle.innerText = `${qIdx + 1}. ${qText}`;
+            qCard.appendChild(qTitle);
+
+            shuffledOptions.forEach(opt => {
+                let label = document.createElement('label');
+                label.className = 'option-label';
+                
+                let isCorrect = (opt.trim().toLowerCase() === correctAnswer.toLowerCase());
+                
+                label.innerHTML = `
+                    <input type="radio" name="q_${qIdx}" value="${opt.trim()}" data-correct="${isCorrect}">
+                    ${opt.trim()}
+                `;
+                qCard.appendChild(label);
+            });
+
+            container.appendChild(qCard);
+        });
+
+        document.getElementById('loading-spinner').style.display = 'none';
+        document.getElementById('quiz-box').style.display = 'block';
+    }
+
+    function submitQuiz() {
+        let score = 0;
+        let total = selectedQuestions.length;
+
+        for (let i = 0; i < total; i++) {
+            let selectedOpt = document.querySelector(`input[name="q_${i}"]:checked`);
+            if (selectedOpt && selectedOpt.getAttribute('data-correct') === "true") {
+                score++;
+            }
+        }
+
+        const name = document.getElementById('student-name').value.trim();
+        const id = document.getElementById('student-id').value.trim();
+        const subject = document.getElementById('subject-select').options[document.getElementById('subject-select').selectedIndex].text;
+
+        document.getElementById('quiz-box').style.display = 'none';
+        document.getElementById('result-student-info').innerText = `${name} (${id}) - ${subject}`;
+        document.getElementById('final-score').innerText = `${score} / ${total}`;
+        document.getElementById('score-box').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
