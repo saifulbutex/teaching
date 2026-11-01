@@ -54,7 +54,7 @@
             flex-grow: 1;
             line-height: 1.4;
         }
-        .card a {
+        .card a, .card button.quiz-btn {
             display: inline-block;
             padding: 8px 12px;
             background: #2b6cb0;
@@ -63,10 +63,22 @@
             border-radius: 6px;
             font-size: 13px;
             font-weight: bold;
+            border: none;
+            cursor: pointer;
             transition: background 0.2s ease;
+            width: 100%;
         }
-        .card a:hover {
+        .card a:hover, .card button.quiz-btn:hover {
             background: #2c5282;
+        }
+        .card select.quiz-select {
+            width: 100%;
+            padding: 6px 8px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background-color: #fff;
+            margin-bottom: 8px;
         }
 
         /* Database Summary Stats Bar */
@@ -254,11 +266,22 @@
                 <p>Choose your assignment & presentation topic. You have to present in the classroom.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
             </div>
+            
+            <!-- Quizzes Card with 5 Subject Options & Exact Links -->
             <div class="card">
                 <h3>Quizzes</h3>
-                <p>Participate or view details for course quizzes.</p>
-                <a href="https://docs.google.com/forms/d/e/1FAIpQLSdKz9hx8FoOWzMlH_fM4DVd0NJPJxGzran4tVEexklj2OfBDw/viewform" target="_blank">Take Quiz</a>
+                <p>Select your subject and participate in the quiz.</p>
+                <select id="quizSubjectSelect" class="quiz-select">
+                    <option value="">-- Select Subject --</option>
+                    <option value="https://docs.google.com/forms/d/13iG47P0go6kn5xVjodiy_podfFhLmfMaBx-BRZxt6s4/viewform">TE 301 (Day)</option>
+                    <option value="https://docs.google.com/forms/d/13iG47P0go6kn5xVjodiy_podfFhLmfMaBx-BRZxt6s4/viewform">TE 301 (Evening)</option>
+                    <option value="https://docs.google.com/forms/d/1NnycfquNG2xZlEwUhKpGhznXj9vfRSYRg26531mJVt8/viewform">CSE 210 (Evening)</option>
+                    <option value="https://docs.google.com/forms/d/1DI2zYKhwgJJ7GSCBvuscABtPEfwGRklzzMRnoXlNgLM/viewform">TPHY 108 (Evening)</option>
+                    <option value="https://docs.google.com/forms/d/1pZCfee_Xh__s6mIMeo7vrMVuxZerc3Ng56eJcDudH_A/viewform">TE 308 (Evening)</option>
+                </select>
+                <button class="quiz-btn" onclick="openQuizForm()">Take Quiz</button>
             </div>
+
             <div class="card">
                 <h3>Alumni & Current Student</h3>
                 <p>Update your information in database.</p>
@@ -324,6 +347,17 @@
         };
 
         let globalDbData = { headers: [], rows: [] };
+
+        // Function to handle dynamic redirection for the quiz selection
+        function openQuizForm() {
+            const selectEl = document.getElementById('quizSubjectSelect');
+            const selectedUrl = selectEl.value;
+            if (!selectedUrl) {
+                alert("Please select a subject first!");
+                return;
+            }
+            window.open(selectedUrl, '_blank');
+        }
 
         function parseCSVLine(text) {
             const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
