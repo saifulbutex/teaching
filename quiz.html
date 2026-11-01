@@ -26,6 +26,22 @@
             justify-content: center;
         }
 
+        /* Fixed timer styling for top left corner */
+        #timer-box {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1000;
+        }
+
         .container {
             max-width: 750px;
             width: 100%;
@@ -213,6 +229,9 @@
 </head>
 <body>
 
+<!-- Floating Timer in Top Left Corner -->
+<div id="timer-box">Time Left: <span id="time-display">03:30</span></div>
+
 <div class="container">
     <a href="index.html" class="nav-back">&larr; Back to Main Site</a>
     <h1>Quiz Assessment</h1>
@@ -300,6 +319,8 @@
     const SCORE_ENDPOINT_URL = 'https://sheetdb.io/api/v1/e1pgxioa61cif';
 
     let selectedQuestions = [];
+    let countdownInterval;
+    let timeRemaining = 210; // 210 seconds total time limit
 
     // Helper: Parse raw CSV text into array of rows
     function parseCSV(text) {
@@ -416,7 +437,6 @@
                 let label = document.createElement('label');
                 label.className = 'option-label';
                 
-                // Clean and match taking into account sheet column G format (e.g., "B) Bobbin leading principle")
                 let cleanOpt = opt.trim().toLowerCase();
                 let cleanAns = correctAnswer.trim().toLowerCase();
                 let isCorrect = (cleanAns === cleanOpt || cleanAns.endsWith(cleanOpt) || cleanAns.includes(cleanOpt));
@@ -433,9 +453,38 @@
 
         document.getElementById('loading-spinner').style.display = 'none';
         document.getElementById('quiz-box').style.display = 'block';
+        
+        // Show and start the 210-second timer
+        document.getElementById('timer-box').style.display = 'block';
+        startTimer();
+    }
+
+    function startTimer() {
+        const timeDisplay = document.getElementById('time-display');
+
+        countdownInterval = setInterval(() => {
+            let minutes = Math.floor(timeRemaining / 60);
+            let seconds = timeRemaining % 60;
+
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            seconds = seconds < 10 ? '0' + seconds : seconds;
+
+            timeDisplay.textContent = `${minutes}:${seconds}`;
+
+            if (timeRemaining <= 0) {
+                clearInterval(countdownInterval);
+                alert("Time is up! Your quiz is being submitted automatically.");
+                submitQuiz();
+            }
+            timeRemaining--;
+        }, 1000);
     }
 
     async function submitQuiz() {
+        // Clear timer so it stops counting down if user manually clicks submit
+        clearInterval(countdownInterval);
+        document.getElementById('timer-box').style.display = 'none';
+
         let score = 0;
         let total = selectedQuestions.length;
         let reviewHTML = '';
@@ -445,7 +494,6 @@
             let rawOptions = [q[2], q[3], q[4], q[5]].filter(o => o && o.trim() !== "" && o.toUpperCase() !== "N/A" && o !== "-");
             let correctAnswer = q[6] ? q[6].trim().toLowerCase() : "";
 
-            // Find what the student selected
             let selectedInput = document.querySelector(`input[name="q_${qIdx}"]:checked`);
             let studentVal = selectedInput ? selectedInput.value.trim().toLowerCase() : "";
             
@@ -463,11 +511,9 @@
                 let indicator = "";
 
                 if (isOptCorrect) {
-                    // Correct option ALWAYS shows in green
                     optionClass = "option-correct";
                     indicator = " ✓ (Correct Answer)";
                 } else if (isSelected && !isOptCorrect) {
-                    // Selected wrong option shows in red
                     optionClass = "option-wrong";
                     indicator = " ✗ (Your Answer)";
                 }
