@@ -282,8 +282,8 @@
 
         <div class="form-group">
             <label for="quiz-passcode">Class Quiz Passcode:</label>
-            <input type="password" id="quiz-passcode" placeholder="Enter passcode announced in class" required>
-            <div class="help-text">Required before questions are loaded.</div>
+            <input type="password" id="quiz-passcode" placeholder="Enter passcode announced in class">
+            <div class="help-text">Required when passcode protection is enabled.</div>
         </div>
 
         <button type="button" class="btn" onclick="startQuiz()">Start Quiz</button>
@@ -354,10 +354,10 @@
     const SPREADSHEET_ID = '1JLt7JzZ8B3AiEqXmuQqOxxzSCOKZsDzQHPg9vS2wlCM';
     const SCORE_ENDPOINT_URL = 'https://sheetdb.io/api/v1/e1pgxioa61cif';
 
-    // Set your class passcode here before the quiz (case-insensitive match via .toLowerCase())
+    // Set to false to disable single passcode check, or a string like 'ADUST2026' to require one
     const QUIZ_PASSCODE = false;
 
-    // Optional: If you want separate passcodes per subject tab, set USE_PER_SUBJECT_PASSCODES = true
+    // Set to true to use separate passcodes per subject tab from SUBJECT_PASSCODES
     const USE_PER_SUBJECT_PASSCODES = true;
     const SUBJECT_PASSCODES = {
         'TE_301_Day': 'phd10',
@@ -409,9 +409,15 @@
 
     function getExpectedPasscode(sheetTab) {
         if (USE_PER_SUBJECT_PASSCODES) {
-            return (SUBJECT_PASSCODES[sheetTab] || '').trim().toLowerCase();
+            const code = SUBJECT_PASSCODES[sheetTab];
+            return (code !== undefined && code !== null && code !== false)
+                ? String(code).trim().toLowerCase()
+                : '';
         }
-        return (QUIZ_PASSCODE || '').trim().toLowerCase();
+        if (QUIZ_PASSCODE === false || QUIZ_PASSCODE === null || QUIZ_PASSCODE === undefined) {
+            return '';
+        }
+        return String(QUIZ_PASSCODE).trim().toLowerCase();
     }
 
     async function startQuiz() {
@@ -426,7 +432,7 @@
         }
 
         const expectedPasscode = getExpectedPasscode(sheetTab);
-        if (!expectedPasscode || enteredPasscode !== expectedPasscode) {
+        if (expectedPasscode !== '' && enteredPasscode !== expectedPasscode) {
             alert("Invalid class passcode. Please enter the passcode announced in class.");
             return;
         }
