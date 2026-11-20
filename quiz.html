@@ -68,13 +68,19 @@
             margin-bottom: 6px;
         }
 
-        input[type="text"], select {
+        input[type="text"], input[type="password"], select {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 6px;
             font-size: 1rem;
             box-sizing: border-box;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
         }
 
         .btn {
@@ -251,7 +257,7 @@
     <a href="index.html" class="nav-back">&larr; Back to Main Site</a>
     <h1>Quiz Assessment</h1>
 
-    <!-- STEP 1: Student Details & Subject Selection -->
+    <!-- STEP 1: Student Details, Subject Selection & Passcode Gate -->
     <div id="setup-box">
         <div class="form-group">
             <label for="student-name">Full Name:</label>
@@ -260,7 +266,7 @@
 
         <div class="form-group">
             <label for="student-id">Student ID:</label>
-            <input type="text" id="student-id" placeholder="Enter your student ID" required>
+            <input type="text" id="student-id" placeholder="Enter your student ID (e.g., 252-0123-207)" required>
         </div>
 
         <div class="form-group">
@@ -274,12 +280,18 @@
             </select>
         </div>
 
+        <div class="form-group">
+            <label for="quiz-passcode">Class Quiz Passcode:</label>
+            <input type="password" id="quiz-passcode" placeholder="Enter passcode announced in class" required>
+            <div class="help-text">Required before questions are loaded.</div>
+        </div>
+
         <button type="button" class="btn" onclick="startQuiz()">Start Quiz</button>
     </div>
 
     <!-- LOADING STATE -->
     <div id="loading-spinner" class="loader">
-        Fetching questions and generating a quiz set...
+        Verifying passcode and fetching questions...
     </div>
 
     <!-- STEP 2: Question Reveal Gate View -->
@@ -342,6 +354,19 @@
     const SPREADSHEET_ID = '1JLt7JzZ8B3AiEqXmuQqOxxzSCOKZsDzQHPg9vS2wlCM';
     const SCORE_ENDPOINT_URL = 'https://sheetdb.io/api/v1/e1pgxioa61cif';
 
+    // Set your class passcode here before the quiz (case-insensitive match via .toLowerCase())
+    const QUIZ_PASSCODE = false;
+
+    // Optional: If you want separate passcodes per subject tab, set USE_PER_SUBJECT_PASSCODES = true
+    const USE_PER_SUBJECT_PASSCODES = True;
+    const SUBJECT_PASSCODES = {
+        'TE_301_Day': 'phd10',
+        'TE_301_Evening': 'phd20',
+        'CSE_210_Evening': 'phd30',
+        'TPHY_108_Evening': 'phd40',
+        'TE_308_Evening': 'phd50'
+    };
+
     let selectedQuestions = [];
     let studentAnswers = {}; // Stores selected option text keyed by question index
     let currentQuestionIndex = 0;
@@ -382,13 +407,27 @@
         return copy;
     }
 
+    function getExpectedPasscode(sheetTab) {
+        if (USE_PER_SUBJECT_PASSCODES) {
+            return (SUBJECT_PASSCODES[sheetTab] || '').trim().toLowerCase();
+        }
+        return (QUIZ_PASSCODE || '').trim().toLowerCase();
+    }
+
     async function startQuiz() {
         const name = document.getElementById('student-name').value.trim();
         const id = document.getElementById('student-id').value.trim();
         const sheetTab = document.getElementById('subject-select').value;
+        const enteredPasscode = document.getElementById('quiz-passcode').value.trim().toLowerCase();
 
         if (!name || !id) {
             alert("Please enter both your Name and Student ID.");
+            return;
+        }
+
+        const expectedPasscode = getExpectedPasscode(sheetTab);
+        if (!expectedPasscode || enteredPasscode !== expectedPasscode) {
+            alert("Invalid class passcode. Please enter the passcode announced in class.");
             return;
         }
 
