@@ -217,6 +217,61 @@
             font-weight: bold;
             margin-top: 15px;
         }
+
+        /* Database Prompt Modal */
+        .db-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 9999;
+        }
+        .db-modal-backdrop[hidden] {
+            display: none;
+        }
+        .db-modal-box {
+            width: 100%;
+            max-width: 420px;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 24px 20px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+            text-align: center;
+            border-top: 5px solid #1a365d;
+        }
+        .db-modal-question {
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a365d;
+            line-height: 1.4;
+        }
+        .db-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .db-modal-actions button {
+            flex: 1;
+            padding: 11px 16px;
+            font-size: 15px;
+        }
+        .db-btn-yes {
+            background: #276749;
+        }
+        .db-btn-yes:hover {
+            background: #22543d;
+        }
+        .db-btn-no {
+            background: #2b6cb0;
+        }
+        .db-btn-no:hover {
+            background: #2c5282;
+        }
+
         @media (max-width: 1024px) {
             .grid {
                 grid-template-columns: repeat(3, 1fr);
@@ -243,10 +298,23 @@
             button {
                 width: 20%;
             }
+            .db-modal-actions button {
+                width: auto;
+            }
         }
     </style>
 </head>
 <body>
+    <div id="dbPromptModal" class="db-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="dbModalQuestion" hidden>
+        <div class="db-modal-box">
+            <p id="dbModalQuestion" class="db-modal-question">Have you filled up Our Database?</p>
+            <div class="db-modal-actions">
+                <button id="dbBtnYes" type="button" class="db-btn-yes">Yes</button>
+                <button id="dbBtnNo" type="button" class="db-btn-no">No</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <h1>Course Resource & Submission Portal - Saiful Islam</h1>
 
@@ -257,16 +325,16 @@
                 <a href="materials.html" target="_blank">Open the contents</a>
             </div>
             <div class="card">
-                <h3>Topic Selection</h3>
-                <p>Choose your assignment & presentation topic. You have to present in the classroom.</p>
-                <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
-            </div>
-            <div class="card">
                 <h3>Submit Assignment</h3>
                 <p>Upload your assignment file. Don't need to upload presentation file.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSetb1qkOJCOo-je8nGlXzzWT0elucVY7oG4AZqVvjTeTogl4w/viewform?usp=header" target="_blank">Submission Form</a>
             </div>
-            
+            <div class="card">
+                <h3>Topic Selection</h3>
+                <p>Choose your assignment & presentation topic. You have to present in the classroom.</p>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
+            </div>
+
             <!-- Quizzes Card with Link to quiz.html -->
             <div class="card">
                 <h3>Quiz</h3>
@@ -325,6 +393,7 @@
     </div>
 
     <script>
+        const DATABASE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScdA_yH0SSadxM3PiHonx8OqEaYUAmiEHq8-FF0GW-RVg9sug/viewform?usp=header';
         const ASSIGNMENT_TOPICS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRXuGmX2j9ajuOXBzDlTp0yITGrvxTXpwG8b6gNwRPJF9pbJg-TmawllInMLWbhOwgAaHSE77Z6ecze/pub?output=csv';
         const ASSIGNMENT_SUBMISSION_CSV_URL = 'https://docs.google.com/spreadsheets/d/1xdsIgRGwAPGXz14xVeJwv_4zbbFQO80VGuCbL3mkybA/export?format=csv&gid=1550212553';
         const QUIZZES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQoa1KkrEwDWIv-U91QmRAqNppc8pC-07_pErrhFnVr6B4GP-8NO3nRD6kr9dAHOMV09HljsW9m_Isa/pub?output=csv';
@@ -340,6 +409,47 @@
         };
 
         let globalDbData = { headers: [], rows: [] };
+        let dbPromptStep = 'initial';
+
+        function closeDbPrompt() {
+            const modal = document.getElementById('dbPromptModal');
+            if (modal) modal.hidden = true;
+        }
+
+        function openDatabaseForm() {
+            window.open(DATABASE_FORM_URL, '_blank', 'noopener,noreferrer');
+        }
+
+        function initDatabasePrompt() {
+            const modal = document.getElementById('dbPromptModal');
+            const questionEl = document.getElementById('dbModalQuestion');
+            const yesBtn = document.getElementById('dbBtnYes');
+            const noBtn = document.getElementById('dbBtnNo');
+            if (!modal || !questionEl || !yesBtn || !noBtn) return;
+
+            dbPromptStep = 'initial';
+            questionEl.textContent = 'Have you filled up Our Database?';
+            modal.hidden = false;
+
+            yesBtn.onclick = () => {
+                if (dbPromptStep === 'initial') {
+                    dbPromptStep = 'update';
+                    questionEl.textContent = 'Want to update?';
+                } else if (dbPromptStep === 'update') {
+                    closeDbPrompt();
+                    openDatabaseForm();
+                }
+            };
+
+            noBtn.onclick = () => {
+                if (dbPromptStep === 'initial') {
+                    closeDbPrompt();
+                    openDatabaseForm();
+                } else if (dbPromptStep === 'update') {
+                    closeDbPrompt();
+                }
+            };
+        }
 
         function escapeHTML(str) {
             return String(str ?? '')
@@ -579,7 +689,10 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', loadDatabaseStats);
+        window.addEventListener('DOMContentLoaded', () => {
+            initDatabasePrompt();
+            loadDatabaseStats();
+        });
     </script>
 </body>
 </html>
