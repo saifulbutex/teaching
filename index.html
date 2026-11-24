@@ -266,7 +266,7 @@
                 <p>Choose your assignment & presentation topic. You have to present in the classroom.</p>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSc1BXZQG2Au-9hRaWkJz5y7eH0k_2A0hDR764v7BrY3EPj49Q/viewform?usp=header" target="_blank">Choice Form</a>
             </div>
-            
+
             <!-- Quizzes Card with Link to quiz.html -->
             <div class="card">
                 <h3>Quiz</h3>
@@ -309,7 +309,7 @@
         <p style="text-align: center;">Select your Subject Code & Shift, and enter your Student ID</p>
 
         <div class="input-group">
-            <select id="subjectCodeSelect" class="subject-select">
+            <select id="subjectCodeSelect" class="subject-select" aria-label="Select Subject and Shift">
                 <option value="">-- Select Subject & Shift --</option>
                 <option value="TE 301 (Day)">TE 301 (Day)</option>
                 <option value="CSE 210 (Evening)">CSE 210 (Evening)</option>
@@ -317,7 +317,7 @@
                 <option value="TPHY 108 (Evening)">TPHY 108 (Evening)</option>
                 <option value="TE 308 (Evening)">TE 308 (Evening)</option>
             </select>
-            <input type="text" id="studentIdInput" placeholder="Student ID (e.g., 252-0123-207)" onkeypress="handleKeyPress(event)">
+            <input type="text" id="studentIdInput" placeholder="Student ID (e.g., 252-0123-207)" aria-label="Student ID" onkeydown="handleKeyPress(event)">
             <button onclick="searchAllStudentStatus()">Search Status</button>
         </div>
 
@@ -340,6 +340,19 @@
         };
 
         let globalDbData = { headers: [], rows: [] };
+
+        function escapeHTML(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizeId(val) {
+            return String(val ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
 
         function parseCSVLine(text) {
             const regex = /(?:,|\r?\n|^)(?:"([^"]*(?:""[^"]*)*)"|([^,\r\n]*))/gi;
@@ -369,7 +382,7 @@
 
                 const uniqueRowsMap = new Map();
                 rawRows.forEach(row => {
-                    const studentIdKey = (row[idColIndex] || '').trim().toLowerCase();
+                    const studentIdKey = normalizeId(row[idColIndex] || '');
                     if (studentIdKey !== '') {
                         uniqueRowsMap.set(studentIdKey, row);
                     } else {
@@ -420,10 +433,10 @@
             if (category === 'seeking') displayTitle = 'JOB SEEKING / UNEMPLOYED RECORDS';
 
             if (filteredRows.length === 0) {
-                container.innerHTML = `<p class="status-none">No records found under category: ${displayTitle}</p>`;
+                container.innerHTML = `<p class="status-none">No records found under category: ${escapeHTML(displayTitle)}</p>`;
             } else {
                 container.innerHTML = `
-                    <div class="section-title">${displayTitle} (${filteredRows.length})</div>
+                    <div class="section-title">${escapeHTML(displayTitle)} (${filteredRows.length})</div>
                     ${buildTableHTML(globalDbData.headers, filteredRows)}
                 `;
             }
@@ -442,29 +455,35 @@
 
                 const cleanSelected = selectedSubject.toLowerCase();
                 const baseCodeMatch = cleanSelected.match(/^([a-z0-9\s]+)/);
-                const cleanBaseCode = baseCodeMatch ? baseCodeMatch[1].replace(/\s+/g, '') : '';
-                const isDay = cleanSelected.includes('day');
-                const isEvening = cleanSelected.includes('evening');
+                const cleanBaseCode = baseCodeMatch ? baseCodeMatch[1].replace(/[^a-z0-9]/g, '') : '';
+                const isDay = /\bday\b/.test(cleanSelected);
+                const isEvening = /\bevening\b/.test(cleanSelected);
+                const targetId = studentId ? normalizeId(studentId) : null;
 
                 const matches = rows.filter(row => {
                     const rowStr = row.join(' ').toLowerCase();
-                    const cleanRowStr = rowStr.replace(/\s+/g, '');
-                    const hasId = studentId ? row.some(cell => cell.toLowerCase() === studentId) : true;
+                    const cleanRowStr = rowStr.replace(/[^a-z0-9]/g, '');
+
+                    const hasId = targetId
+                        ? row.some(cell => normalizeId(cell) === targetId)
+                        : true;
 
                     if (isTopicSheet) {
-                        const hasSubject = cleanRowStr.includes(cleanBaseCode);
-                        let shiftMatch = true;
-                        if (isDay && rowStr.includes('evening')) shiftMatch = false;
-                        if (isEvening && rowStr.includes('day')) shiftMatch = false;
-                        return hasSubject && shiftMatch;
+                        const hasSubject = cleanBaseCode ? cleanRowStr.includes(cleanBaseCode) : true;
+                        if (isDay && /\bevening\b/.test(rowStr)) return false;
+                        if (isEvening && /\bday\b/.test(rowStr) && !/\bevening\b/.test(rowStr)) return false;
+                        return hasSubject && hasId;
                     }
 
-                    // Strict shift check for sheets with subject columns (such as Quiz registry)
-                    let shiftMatch = true;
-                    if (isDay && rowStr.includes('evening')) shiftMatch = false;
-                    if (isEvening && rowStr.includes('day') && !rowStr.includes('evening')) shiftMatch = false;
+                    // Match student ID cleanly; only reject if an explicit shift conflict appears
+                    // alongside a subject code reference.
+                    const mentionsSubject = cleanBaseCode && cleanRowStr.includes(cleanBaseCode);
+                    if (mentionsSubject) {
+                        if (isDay && /\bevening\b/.test(rowStr)) return false;
+                        if (isEvening && /\bday\b/.test(rowStr) && !/\bevening\b/.test(rowStr)) return false;
+                    }
 
-                    return hasId && shiftMatch;
+                    return hasId;
                 });
 
                 return { headers, matches };
@@ -475,7 +494,7 @@
 
         async function searchAllStudentStatus() {
             const inputSubject = document.getElementById('subjectCodeSelect').value.trim();
-            const inputId = document.getElementById('studentIdInput').value.trim().toLowerCase();
+            const inputId = document.getElementById('studentIdInput').value.trim();
             const container = document.getElementById('unifiedResultContainer');
 
             if (!inputSubject || !inputId) {
@@ -485,11 +504,11 @@
 
             container.innerHTML = '<p style="color:#666; margin-top:15px;">Searching academic records...</p>';
 
-            const tabName = SUBJECT_TAB_MAP[inputSubject] || encodeURIComponent(inputSubject);
-            const attendanceUrl = `${ATTENDANCE_SHEET_BASE_URL}${encodeURIComponent(tabName)}`;
+            const rawTabName = SUBJECT_TAB_MAP[inputSubject] || inputSubject;
+            const attendanceUrl = `${ATTENDANCE_SHEET_BASE_URL}${encodeURIComponent(rawTabName)}`;
 
             const [topicData, submissionData, attendanceData, quizData, studentDbData] = await Promise.all([
-                fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, inputId, false),
+                fetchAndFilterCSV(ASSIGNMENT_TOPICS_CSV_URL, inputSubject, inputId, true),
                 fetchAndFilterCSV(ASSIGNMENT_SUBMISSION_CSV_URL, inputSubject, inputId, false),
                 fetchAndFilterCSV(attendanceUrl, inputSubject, inputId, false),
                 fetchAndFilterCSV(QUIZZES_CSV_URL, inputSubject, inputId, false),
@@ -527,7 +546,7 @@
             }
 
             if (outputHTML === '') {
-                container.innerHTML = `<p class="status-none">No records found matching Subject Code "${inputSubject}" and Student ID "${inputId.toUpperCase()}".</p>`;
+                container.innerHTML = `<p class="status-none">No records found matching Subject Code "${escapeHTML(inputSubject)}" and Student ID "${escapeHTML(inputId.toUpperCase())}".</p>`;
             } else {
                 container.innerHTML = outputHTML;
             }
@@ -538,7 +557,7 @@
             let html = '<div class="table-wrapper"><table class="result-table"><tr>';
             indices.forEach(i => {
                 const headerText = (headers && headers[i] !== undefined && headers[i] !== '') ? headers[i] : `Col ${i + 1}`;
-                html += `<th>${headerText}</th>`;
+                html += `<th>${escapeHTML(headerText)}</th>`;
             });
             html += '</tr>';
 
@@ -546,7 +565,7 @@
                 html += '<tr>';
                 indices.forEach(i => {
                     const cellText = (row && row[i] !== undefined) ? row[i] : '';
-                    html += `<td>${cellText}</td>`;
+                    html += `<td>${escapeHTML(cellText)}</td>`;
                 });
                 html += '</tr>';
             });
